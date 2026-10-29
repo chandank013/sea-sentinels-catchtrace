@@ -375,6 +375,55 @@ export default function Timeline({ events = [], isPublic = false, batchId = '', 
                 </div>
               )}
 
+              {/* Live Camera Photo Evidence Thumbnail (Locked in Hash Chain) */}
+              {event.photo_url && (
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={event.photo_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative group shrink-0"
+                      title="Click to view full photo evidence"
+                    >
+                      <img
+                        src={event.photo_url}
+                        alt={`Step #${event.seq} Live Photo Evidence`}
+                        className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg border border-slate-300 shadow-2xs group-hover:opacity-90 transition-opacity"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 rounded-lg text-white text-[10px] font-bold transition-opacity">
+                        View
+                      </span>
+                    </a>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Camera className="w-3.5 h-3.5 text-ocean-600 shrink-0" />
+                        <span className="text-xs font-bold text-navy-900">
+                          {lang === 'kn' ? 'ಲೈವ್ ಕ್ಯಾಮೆರಾ ಫೋಟೋ ಪುರಾವೆ' : 'Live Camera Evidence'}
+                        </span>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
+                          SHA-256 Locked
+                        </span>
+                      </div>
+                      {event.photo_hash && (
+                        <p className="text-[10px] font-mono text-textMuted mt-0.5 truncate max-w-[180px] sm:max-w-[320px]" title={event.photo_hash}>
+                          Hash: {event.photo_hash.slice(0, 14)}...{event.photo_hash.slice(-8)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <a
+                    href={event.photo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-ocean-700 hover:text-ocean-800 hover:underline shrink-0 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs"
+                  >
+                    Open Image &rarr;
+                  </a>
+                </div>
+              )}
+
               {/* Dispute Warning & Evidence Callout */}
               {isDisputed && (
                 <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-900">

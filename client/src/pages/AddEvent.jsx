@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/navigation/Navbar';
 import Footer from '../components/navigation/Footer';
@@ -22,6 +22,8 @@ import {
   CheckCircle,
   ArrowRight,
   ShieldCheck,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -38,6 +40,13 @@ export default function AddEvent() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Live Camera Photo Evidence State (Mandatory)
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Role determine active event form type
   const userRole = user?.role || 'TRADER';
@@ -149,6 +158,68 @@ export default function AddEvent() {
     };
   }, [batchId]);
 
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoFile(file);
+    const localPreview = URL.createObjectURL(file);
+    setPhotoPreview(localPreview);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      setUploadingPhoto(true);
+      try {
+        const cloudName = import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = import.meta.env?.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+        let finalUrl = '';
+        if (cloudName && uploadPreset) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', uploadPreset);
+            const cRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+              method: 'POST',
+              body: formData,
+            });
+            const cData = await cRes.json();
+            if (cData.secure_url) {
+              finalUrl = cData.secure_url;
+            }
+          } catch (cErr) {
+            console.warn('Cloudinary upload fallback:', cErr);
+          }
+        }
+
+        if (!finalUrl) {
+          const res = await api.uploadPhoto(dataUrl, file.name);
+          finalUrl = res.url || dataUrl;
+        }
+
+        setPhotoUrl(finalUrl);
+        toast.success('Live photo captured & ready to hash!');
+      } catch (err) {
+        console.warn('Upload fallback to local Data URL:', err);
+        setPhotoUrl(dataUrl);
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRetakePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -162,11 +233,21 @@ export default function AddEvent() {
       return;
     }
 
+    // Live Camera Photo Evidence is mandatory on all events
+    if (!photoFile && !photoUrl) {
+      toast.error('Live camera photo evidence is required for every event!');
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+      return;
+    }
+
     setSubmitting(true);
     try {
       let eventPayload = {
         event_type: eventType,
         grade_claimed: gradeClaimed,
+        photo_url: photoUrl,
       };
 
       if (eventType === 'PURCHASE') {
@@ -734,6 +815,87 @@ export default function AddEvent() {
                 </div>
               </div>
             )}
+
+            {/* Live Camera Photo Evidence — Required for Every Event */}
+            <div className="pt-3 border-t border-borderLight space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-navy-900">
+                  Live Camera Photo Evidence <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] font-semibold text-ocean-700 bg-ocean-50 px-2 py-0.5 rounded-full border border-ocean-200 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-ocean-600" />
+                  <span>SHA-256 Hash Locked</span>
+                </span>
+              </div>
+
+              <p className="text-[11px] text-textSecondary">
+                Capture live photo evidence using your device camera (cargo weigh-in, crate label, or reefer temperature). This photo is cryptographically locked into the tamper-proof ledger chain.
+              </p>
+
+              {/* Native Mobile Camera Input: capture="environment" forces camera on mobile devices */}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                ref={fileInputRef}
+                onChange={handlePhotoCapture}
+                className="hidden"
+                id="live-camera-photo-input"
+              />
+
+              {!photoPreview ? (
+                <label
+                  htmlFor="live-camera-photo-input"
+                  className="w-full flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-ocean-300 hover:border-ocean-500 bg-ocean-50/20 hover:bg-ocean-50/50 transition-all cursor-pointer group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-ocean-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform mb-2">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold text-navy-900 group-hover:text-ocean-700 transition-colors">
+                    Take Live Photo with Camera
+                  </span>
+                  <span className="text-[10px] text-textMuted mt-0.5">
+                    Opens rear camera on mobile (capture="environment")
+                  </span>
+                </label>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={photoPreview}
+                      alt="Captured evidence preview"
+                      className="w-16 h-16 object-cover rounded-xl border border-slate-300 shadow-xs"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-bold text-navy-900">Live Photo Captured</span>
+                      </div>
+                      <p className="text-[10px] text-textMuted mt-0.5 font-mono truncate max-w-[200px] sm:max-w-[320px]">
+                        {photoFile?.name || 'live_camera_capture.jpg'}
+                      </p>
+                      {uploadingPhoto ? (
+                        <span className="text-[10px] text-ocean-700 font-semibold animate-pulse block mt-0.5">
+                          Hashing and uploading evidence...
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                          ✓ Locked into tamper-proof chain
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRetakePhoto}
+                    className="self-end sm:self-auto text-xs font-bold text-ocean-700 hover:text-ocean-800 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors"
+                  >
+                    Retake Photo
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Universal Grade Claimed Selection */}
             <div className="pt-2 border-t border-borderLight">

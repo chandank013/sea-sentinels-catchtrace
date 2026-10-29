@@ -1,6 +1,6 @@
 import express from 'express';
 import { BATCHES, ALERTS, USERS, resetSeedData } from '../db/store.js';
-import { computeEventHash, verifyEventChain } from '../services/hashChain.js';
+import { computeEventHash, verifyEventChain, computePhotoHash } from '../services/hashChain.js';
 import { runAlertRules } from '../services/alertsEngine.js';
 import { filterBatchesByRole } from '../services/roleScoping.js';
 import { authenticateToken, optionalToken } from '../middleware/auth.js';
@@ -95,7 +95,7 @@ router.get('/:id', optionalToken, (req, res) => {
 });
 
 // POST /api/batches
-router.post('/', optionalToken, (req, res) => {
+router.post('/', optionalToken, async (req, res) => {
   const data = req.body;
   if (!data || !data.species || !data.landing_centre) {
     return res.status(400).json({ error: 'Species and landing centre are required.' });
@@ -118,6 +118,9 @@ router.post('/', optionalToken, (req, res) => {
   const batchId = `FB-${todayStr}-${nextSeq}`;
   const nowIso = new Date().toISOString();
 
+  // Compute live photo hash locked into landing genesis block
+  const photoHash = data.photo_hash || (data.photo_url ? await computePhotoHash(data.photo_url) : '');
+
   const landingHash = computeEventHash({
     batch_id: batchId,
     seq: 1,
@@ -126,6 +129,7 @@ router.post('/', optionalToken, (req, res) => {
     weight_kg: initialWeight,
     occurred_at: data.landed_at || nowIso,
     notes: data.notes || '',
+    photo_hash: photoHash,
     prev_hash: 'GENESIS',
   });
 
@@ -147,7 +151,8 @@ router.post('/', optionalToken, (req, res) => {
     confirmed_by: null,
     confirmed_at: null,
     dispute_note: null,
-    photo_url: null,
+    photo_url: data.photo_url || null,
+    photo_hash: photoHash || null,
     prev_hash: 'GENESIS',
     hash: landingHash,
   };
@@ -176,7 +181,7 @@ router.post('/', optionalToken, (req, res) => {
 });
 
 // POST /api/batches/:id/events
-router.post('/:id/events', optionalToken, (req, res) => {
+router.post('/:id/events', optionalToken, async (req, res) => {
   const targetId = (req.params.id || '').trim().toLowerCase();
   const batch = BATCHES.find((b) => b.batch_id && b.batch_id.toLowerCase() === targetId);
   if (!batch) return res.status(404).json({ error: 'Batch not found' });
@@ -191,6 +196,9 @@ router.post('/:id/events', optionalToken, (req, res) => {
   const prevHash = events.length > 0 ? events[events.length - 1].hash : 'GENESIS';
   const occurredAt = eventData.occurred_at || new Date().toISOString();
 
+  // Compute live camera photo hash and lock it into the event block
+  const photoHash = eventData.photo_hash || (eventData.photo_url ? await computePhotoHash(eventData.photo_url) : '');
+
   const newHash = computeEventHash({
     batch_id: batch.batch_id,
     seq,
@@ -199,6 +207,7 @@ router.post('/:id/events', optionalToken, (req, res) => {
     weight_kg: eventData.weight_kg || batch.current_weight_kg,
     occurred_at: occurredAt,
     notes: eventData.notes || '',
+    photo_hash: photoHash,
     prev_hash: prevHash,
   });
 
@@ -227,6 +236,7 @@ router.post('/:id/events', optionalToken, (req, res) => {
     confirmed_at: eventData.event_type === 'SALE' ? occurredAt : null,
     dispute_note: null,
     photo_url: eventData.photo_url || null,
+    photo_hash: photoHash || null,
     prev_hash: prevHash,
     hash: newHash,
   };

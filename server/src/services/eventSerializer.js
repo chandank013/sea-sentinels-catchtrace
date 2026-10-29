@@ -50,6 +50,7 @@ export function serializeEventForViewer(event, viewerUser = null) {
     confirmed_at: event.confirmed_at || null,
     dispute_note: event.dispute_note || null,
     photo_url: event.photo_url || null,
+    photo_hash: event.photo_hash || null,
     prev_hash: event.prev_hash,
     hash: event.hash,
   };

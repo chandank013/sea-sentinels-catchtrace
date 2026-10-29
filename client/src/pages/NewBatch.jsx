@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import Navbar from '../components/navigation/Navbar';
 import Footer from '../components/navigation/Footer';
@@ -17,6 +17,8 @@ import {
   CheckCircle,
   ArrowRight,
   Sparkles,
+  Camera,
+  ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
@@ -38,14 +40,91 @@ export default function NewBatch() {
   const [operatorName, setOperatorName] = useState(user?.name || 'Ramesh Naik');
   const [notes, setNotes] = useState('Grade A ocean catch, ice-stored in forward hold');
 
+  // Live Camera Photo Evidence State
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+
   const [loading, setLoading] = useState(false);
   const [createdBatch, setCreatedBatch] = useState(null);
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoFile(file);
+    const localPreview = URL.createObjectURL(file);
+    setPhotoPreview(localPreview);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      setUploadingPhoto(true);
+      try {
+        const cloudName = import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = import.meta.env?.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+        let finalUrl = '';
+        if (cloudName && uploadPreset) {
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', uploadPreset);
+            const cRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+              method: 'POST',
+              body: formData,
+            });
+            const cData = await cRes.json();
+            if (cData.secure_url) {
+              finalUrl = cData.secure_url;
+            }
+          } catch (cErr) {
+            console.warn('Cloudinary upload fallback:', cErr);
+          }
+        }
+
+        if (!finalUrl) {
+          const res = await api.uploadPhoto(dataUrl, file.name);
+          finalUrl = res.url || dataUrl;
+        }
+
+        setPhotoUrl(finalUrl);
+        toast.success('Landing evidence captured & ready to hash!');
+      } catch (err) {
+        console.warn('Upload fallback to local Data URL:', err);
+        setPhotoUrl(dataUrl);
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRetakePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setPhotoUrl('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!species || !landingCentre || !initialWeight || Number(initialWeight) <= 0) {
       toast.error('Please enter valid species, harbour, and initial weight');
+      return;
+    }
+
+    if (!photoFile && !photoUrl) {
+      toast.error('Live camera photo evidence of landed catch is required!');
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
       return;
     }
 
@@ -61,6 +140,7 @@ export default function NewBatch() {
         user_id: user?.id,
         user_email: user?.email,
         notes,
+        photo_url: photoUrl,
       });
 
       setCreatedBatch(newBatch);
@@ -234,6 +314,86 @@ export default function NewBatch() {
                   </div>
                 </div>
 
+              </div>
+
+              {/* Live Camera Photo Evidence — Required for Catch Landing */}
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-navy-900">
+                    Live Catch Landing Photo <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] font-semibold text-ocean-700 bg-ocean-50 px-2 py-0.5 rounded-full border border-ocean-200 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-ocean-600" />
+                    <span>Genesis Hash Locked</span>
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-textSecondary">
+                  Take a live camera photo of the landed catch at harbour weigh-in. This photo evidence is hashed into Genesis Block #1.
+                </p>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={fileInputRef}
+                  onChange={handlePhotoCapture}
+                  className="hidden"
+                  id="landing-camera-photo-input"
+                />
+
+                {!photoPreview ? (
+                  <label
+                    htmlFor="landing-camera-photo-input"
+                    className="w-full flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-ocean-300 hover:border-ocean-500 bg-ocean-50/20 hover:bg-ocean-50/50 transition-all cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-ocean-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform mb-1.5">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-navy-900 group-hover:text-ocean-700 transition-colors">
+                      Take Live Landing Photo with Camera
+                    </span>
+                    <span className="text-[10px] text-textMuted mt-0.5">
+                      Rear camera on mobile (capture="environment")
+                    </span>
+                  </label>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={photoPreview}
+                        alt="Landed catch evidence preview"
+                        className="w-14 h-14 object-cover rounded-xl border border-slate-300 shadow-xs"
+                      />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-bold text-navy-900">Landing Photo Captured</span>
+                        </div>
+                        <p className="text-[10px] text-textMuted mt-0.5 font-mono truncate max-w-[200px] sm:max-w-[300px]">
+                          {photoFile?.name || 'landing_camera_capture.jpg'}
+                        </p>
+                        {uploadingPhoto ? (
+                          <span className="text-[10px] text-ocean-700 font-semibold animate-pulse block mt-0.5">
+                            Uploading to secure storage...
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                            ✓ Ready for Genesis block
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleRetakePhoto}
+                      className="self-end sm:self-auto text-xs font-bold text-ocean-700 hover:text-ocean-800 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors"
+                    >
+                      Retake Photo
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Notes */}

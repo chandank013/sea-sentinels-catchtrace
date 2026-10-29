@@ -323,9 +323,12 @@ export const api = {
       const nowIso = new Date().toISOString();
 
       // Create Genesis Landing Event
-      const landingHash = await sha256(
-        `${newId}:1:LANDING:${data.operator_name || 'Fisher'}:${data.initial_weight_kg}:${data.landed_at || nowIso}:${data.notes || ''}:GENESIS`
-      );
+      const photoHash = data.photo_hash || (data.photo_url ? await sha256(data.photo_url) : '');
+      const payload = photoHash
+        ? `${newId}:1:LANDING:${data.operator_name || 'Fisher'}:${data.initial_weight_kg}:${data.landed_at || nowIso}:${data.notes || ''}:${photoHash}:GENESIS`
+        : `${newId}:1:LANDING:${data.operator_name || 'Fisher'}:${data.initial_weight_kg}:${data.landed_at || nowIso}:${data.notes || ''}:GENESIS`;
+
+      const landingHash = await sha256(payload);
 
       const landingEvent = {
         seq: 1,
@@ -338,6 +341,8 @@ export const api = {
         location: data.landing_centre,
         occurred_at: data.landed_at || nowIso,
         notes: data.notes || 'Batch landing registered and ice packed.',
+        photo_url: data.photo_url || null,
+        photo_hash: photoHash || null,
         prev_hash: 'GENESIS',
         hash: landingHash,
       };
@@ -394,10 +399,13 @@ export const api = {
       const seq = events.length + 1;
       const prevHash = events.length > 0 ? events[events.length - 1].hash : 'GENESIS';
       const occurredAt = eventData.occurred_at || new Date().toISOString();
+      const photoHash = eventData.photo_hash || (eventData.photo_url ? await sha256(eventData.photo_url) : '');
 
-      const newHash = await sha256(
-        `${batchId}:${seq}:${eventData.event_type}:${user.name}:${eventData.weight_kg || batch.current_weight_kg}:${occurredAt}:${eventData.notes || ''}:${prevHash}`
-      );
+      const payload = photoHash
+        ? `${batchId}:${seq}:${eventData.event_type}:${user.name}:${eventData.weight_kg || batch.current_weight_kg}:${occurredAt}:${eventData.notes || ''}:${photoHash}:${prevHash}`
+        : `${batchId}:${seq}:${eventData.event_type}:${user.name}:${eventData.weight_kg || batch.current_weight_kg}:${occurredAt}:${eventData.notes || ''}:${prevHash}`;
+
+      const newHash = await sha256(payload);
 
       const titleMap = {
         LANDING: 'Landed',
@@ -425,6 +433,8 @@ export const api = {
         notes: eventData.notes || '',
         customer_type: eventData.customer_type,
         process_type: eventData.process_type,
+        photo_url: eventData.photo_url || null,
+        photo_hash: photoHash || null,
         prev_hash: prevHash,
         hash: newHash,
       };
@@ -494,6 +504,23 @@ export const api = {
           break;
         }
 
+        // Verify photo evidence integrity if photo_url is stored
+        if (ev.photo_url && ev.photo_hash) {
+          const currentPhotoHash = await sha256(ev.photo_url);
+          if (currentPhotoHash !== ev.photo_hash) {
+            brokenStep = {
+              seq: ev.seq,
+              event_type: ev.event_type,
+              title: ev.title,
+              reason: 'Photo evidence tampered: photo at URL does not match locked cryptographic photo_hash.',
+              stored_hash: ev.hash,
+              expected_photo_hash: ev.photo_hash,
+              actual_photo_hash: currentPhotoHash,
+            };
+            break;
+          }
+        }
+
         computedLastHash = ev.hash;
       }
 
@@ -533,6 +560,10 @@ export const api = {
         weight_kg: e.weight_kg,
         occurred_at: e.occurred_at,
         temp_c: e.temp_c,
+        photo_url: e.photo_url || null,
+        photo_hash: e.photo_hash || null,
+        hash: e.hash,
+        prev_hash: e.prev_hash,
       }));
 
       return {
@@ -1038,6 +1069,21 @@ export const api = {
         trust_score,
         confirmed_count: confirmed,
         disputed_count: disputed,
+      };
+    }
+  },
+
+  // Upload Live Evidence Photo
+  async uploadPhoto(dataUrl, filename = 'evidence.jpg') {
+    try {
+      const res = await client.post('/api/upload', { image: dataUrl, filename });
+      return res.data;
+    } catch {
+      // Offline fallback: compute client SHA-256
+      const photo_hash = await sha256(dataUrl);
+      return {
+        url: dataUrl,
+        photo_hash,
       };
     }
   },
