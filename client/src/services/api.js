@@ -9,11 +9,11 @@ import {
   INITIAL_ALERTS,
 } from './mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://catch-trace-api.onrender.com';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },
