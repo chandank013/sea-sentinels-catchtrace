@@ -992,11 +992,52 @@ export const api = {
       const res = await client.get(`/api/users/${userId}/trust-score`);
       return res.data;
     } catch {
+      const batches = getStoredBatches();
+      const cleanId = (userId || '').toLowerCase().trim();
+      let confirmed = 0;
+      let disputed = 0;
+
+      batches.forEach((b) => {
+        (b.events || []).forEach((e) => {
+          const matchActor =
+            (e.actor_id && e.actor_id.toLowerCase().trim() === cleanId) ||
+            (e.actor_name && cleanId && e.actor_name.toLowerCase().includes(cleanId)) ||
+            (e.org_name && cleanId && e.org_name.toLowerCase().includes(cleanId));
+          if (matchActor) {
+            if (e.confirmation_status === 'CONFIRMED') confirmed++;
+            else if (e.confirmation_status === 'DISPUTED') disputed++;
+          }
+        });
+      });
+
+      // Default persona fallback if no events found for this specific query string
+      if (confirmed === 0 && disputed === 0) {
+        if (cleanId.includes('trans') || cleanId.includes('rafi')) {
+          confirmed = 16;
+          disputed = 2;
+        } else if (cleanId.includes('proc') || cleanId.includes('shenoy') || cleanId.includes('sunil')) {
+          confirmed = 13;
+          disputed = 0;
+        } else if (cleanId.includes('fisher') || cleanId.includes('ramesh')) {
+          confirmed = 14;
+          disputed = 1;
+        } else if (cleanId.includes('trader') || cleanId.includes('ganesh')) {
+          confirmed = 18;
+          disputed = 0;
+        } else if (cleanId.includes('seller') || cleanId.includes('anand')) {
+          confirmed = 20;
+          disputed = 0;
+        }
+      }
+
+      const total = confirmed + disputed;
+      const trust_score = total === 0 ? 100 : Math.round((confirmed / total) * 100);
+
       return {
         user_id: userId,
-        trust_score: 95,
-        confirmed_count: 19,
-        disputed_count: 1,
+        trust_score,
+        confirmed_count: confirmed,
+        disputed_count: disputed,
       };
     }
   },
