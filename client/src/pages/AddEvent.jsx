@@ -33,6 +33,8 @@ export default function AddEvent() {
 
   const [batchId, setBatchId] = useState(urlBatchId || 'FB-20261028-0001');
   const [currentBatch, setCurrentBatch] = useState(null);
+  const [counterparty, setCounterparty] = useState(null);
+  const [gradeClaimed, setGradeClaimed] = useState('A');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,7 +84,7 @@ export default function AddEvent() {
     Number(inputWeight) > 0 ? ((Number(outputWeight || 0) / Number(inputWeight)) * 100).toFixed(1) : 0;
   const saleTotal = Number(saleWeight || 0) * Number(salePricePerKg || 0);
 
-  // Load batch details when batchId changes
+  // Load batch details and counterparty trust score when batchId changes
   useEffect(() => {
     let isMounted = true;
     async function loadBatch() {
@@ -90,7 +92,7 @@ export default function AddEvent() {
       setLoading(true);
       try {
         const data = await api.getBatchById(batchId.trim());
-        if (isMounted) {
+        if (isMounted && data) {
           setCurrentBatch(data);
           // Auto fill initial weights based on current batch weight
           if (data.current_weight_kg) {
@@ -99,9 +101,44 @@ export default function AddEvent() {
             setOutputWeight(Math.round(data.current_weight_kg * 0.82).toString());
             setSaleWeight(data.current_weight_kg.toString());
           }
+
+          // Identify counterparty (the actor who logged the prior step)
+          const events = data.events || [];
+          const lastEv = events.length > 0 ? events[events.length - 1] : null;
+          const counterpartyId = lastEv?.actor_id || data.user_id || 'usr_fisher_01';
+          const counterpartyName = lastEv?.actor_name || data.operator_name || 'Previous Custodian';
+          const counterpartyOrg = lastEv?.org_name || data.boat_name || '';
+
+          try {
+            const scoreData = await api.getUserTrustScore(counterpartyId);
+            if (isMounted) {
+              setCounterparty({
+                id: counterpartyId,
+                name: counterpartyName,
+                org: counterpartyOrg,
+                trustScore: scoreData?.trust_score ?? 100,
+                confirmedCount: scoreData?.confirmed_count ?? 0,
+                disputedCount: scoreData?.disputed_count ?? 0,
+              });
+            }
+          } catch {
+            if (isMounted) {
+              setCounterparty({
+                id: counterpartyId,
+                name: counterpartyName,
+                org: counterpartyOrg,
+                trustScore: 100,
+                confirmedCount: 0,
+                disputedCount: 0,
+              });
+            }
+          }
         }
       } catch (err) {
-        if (isMounted) setCurrentBatch(null);
+        if (isMounted) {
+          setCurrentBatch(null);
+          setCounterparty(null);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -129,6 +166,7 @@ export default function AddEvent() {
     try {
       let eventPayload = {
         event_type: eventType,
+        grade_claimed: gradeClaimed,
       };
 
       if (eventType === 'PURCHASE') {
@@ -242,7 +280,7 @@ export default function AddEvent() {
         )}
 
         {/* Main Event Form Card matching reference mockups #2, #3, #4, #5 */}
-        <div className="bg-white rounded-ct p-6 sm:p-8 border border-borderLight shadow-card">
+        <div className="bg-white rounded-ct p-4 sm:p-6 md:p-8 border border-borderLight shadow-card">
           
           <form onSubmit={handleSubmit} className="space-y-6">
             
@@ -263,7 +301,7 @@ export default function AddEvent() {
                 <button
                   type="button"
                   onClick={() => setScannerOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-ocean-600 hover:bg-ocean-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                  className="px-4 py-2.5 rounded-xl bg-ocean-600 hover:bg-ocean-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs whitespace-nowrap shrink-0"
                 >
                   <QrCode className="w-4 h-4" />
                   <span>{t('actions.scanQr')}</span>
@@ -272,8 +310,8 @@ export default function AddEvent() {
 
               {/* Batch Info Card Indicator */}
               {currentBatch ? (
-                <div className="mt-2.5 p-3 rounded-xl bg-ocean-50/70 border border-ocean-200/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
+                <div className="mt-2.5 p-3 rounded-xl bg-ocean-50/70 border border-ocean-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <span className="font-bold text-navy-900">{currentBatch.species}</span>
                     <span className="text-textSecondary">• {currentBatch.landing_centre}</span>
                     <span className="font-semibold text-ocean-700">({currentBatch.current_weight_kg} kg current)</span>
@@ -288,6 +326,37 @@ export default function AddEvent() {
                 <p className="mt-1 text-[11px] text-textSecondary">
                   Enter a valid batch or scan the QR code on the fish crate.
                 </p>
+              )}
+
+              {/* Counterparty Trust Score Banner */}
+              {counterparty && (
+                <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-ocean-50/80 to-slate-50 border border-ocean-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${
+                      counterparty.trustScore >= 90 ? 'bg-emerald-600' : counterparty.trustScore >= 70 ? 'bg-amber-500' : 'bg-rose-500'
+                    }`}>
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-navy-900">
+                        You are transacting with <span className="text-ocean-700 font-extrabold">{counterparty.name}</span>
+                        {counterparty.org ? ` (${counterparty.org})` : ''}
+                      </p>
+                      <p className="text-[11px] text-textSecondary mt-0.5">
+                        Verified handovers: <span className="font-semibold text-emerald-700">{counterparty.confirmedCount} confirmed</span> • <span className="font-semibold text-rose-600">{counterparty.disputedCount} disputed</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-textSecondary">Trust Score</span>
+                    <span className={`text-sm font-black ${
+                      counterparty.trustScore >= 90 ? 'text-emerald-600' : counterparty.trustScore >= 70 ? 'text-amber-600' : 'text-rose-600'
+                    }`}>
+                      {counterparty.trustScore}%
+                    </span>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -665,6 +734,37 @@ export default function AddEvent() {
                 </div>
               </div>
             )}
+
+            {/* Universal Grade Claimed Selection */}
+            <div className="pt-2 border-t border-borderLight">
+              <label className="block text-xs font-bold text-navy-900 mb-1.5">
+                Handover Quality Grade Claimed <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { grade: 'A', title: 'Grade A (Prime)', desc: 'Optimal export/sashimi quality, pristine cold chain' },
+                  { grade: 'B', title: 'Grade B (Standard)', desc: 'Commercial wholesale grade, slight temp/color variance' },
+                  { grade: 'C', title: 'Grade C (Utility)', desc: 'Industrial processing grade, minor sensory defects' },
+                ].map((g) => (
+                  <button
+                    key={g.grade}
+                    type="button"
+                    onClick={() => setGradeClaimed(g.grade)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      gradeClaimed === g.grade
+                        ? 'border-ocean-600 bg-ocean-50 text-ocean-900 ring-2 ring-ocean-500/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black">{g.title}</span>
+                      {gradeClaimed === g.grade && <CheckCircle className="w-3.5 h-3.5 text-ocean-600" />}
+                    </div>
+                    <span className="text-[10px] text-textSecondary block mt-1">{g.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Submit Action Button */}
             <div className="pt-4 border-t border-borderLight flex items-center justify-between">

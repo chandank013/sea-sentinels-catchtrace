@@ -20,7 +20,8 @@ import QRScannerModal from '../components/qr/QRScannerModal';
 import toast from 'react-hot-toast';
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const isKn = lang === 'kn';
   const navigate = useNavigate();
   const [lookupId, setLookupId] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -81,103 +82,103 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-page">
       <PublicNavbar />
 
-      {/* Hero Section matching mockup #1 */}
-      <section className="relative overflow-hidden pt-8 pb-16 md:pt-14 md:pb-24 border-b border-borderLight/60 bg-gradient-to-b from-white via-ocean-50/30 to-page">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      {/* Hero Section — Full-Desktop Viewport Below Navbar */}
+      <section className="relative overflow-hidden w-full min-h-[calc(100vh-72px)] flex items-center border-b border-borderLight/60 bg-gradient-to-r from-white via-white via-40% to-[#E8F4FC]">
+        
+        {/* Desktop Large Harbor Image Layer (63% width, 110% height, top: -5%) */}
+        <img
+          src="/images/catchtrace-hero.png"
+          alt="Coastal Fishing Harbour and Ocean Catch"
+          className="hidden lg:block hero-image select-none z-0"
+          loading="eager"
+        />
+
+        {/* Foreground Content Container */}
+        <div className="w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 relative z-10 py-8 lg:py-12">
+          <div className={`w-full max-w-xl ${isKn ? 'lg:max-w-[620px] xl:max-w-[700px] 2xl:max-w-[780px] space-y-5' : 'lg:max-w-[560px] xl:max-w-[650px] 2xl:max-w-[720px] space-y-5'} text-left`}>
             
-            {/* Left Column: Headline, Subtitle & CTAs */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-navy-900 leading-[1.15] tracking-tight">
-                {t('home.heroTitle1')}<br />
-                <span className="text-ocean-600">{t('home.heroTitle2')}</span> {t('home.heroTitle3')}
-              </h1>
+            {/* Headline: Clean 3 lines with prominent vertical gap */}
+            <h1 className={`font-extrabold text-navy-900 tracking-tight flex flex-col gap-2 sm:gap-3 lg:gap-3.5 ${
+              isKn
+                ? 'text-2xl sm:text-3xl lg:text-[34px] xl:text-[40px] 2xl:text-[44px] leading-[1.35]'
+                : 'text-3xl sm:text-4xl lg:text-[44px] xl:text-[52px] 2xl:text-[58px] leading-[1.18]'
+            }`}>
+              <span className="block">{t('home.heroTitle1', 'Trace Every Fish.')}</span>
+              <span className="block text-ocean-600">{t('home.heroTitle2', 'Build a Transparent')}</span>
+              <span className="block">{t('home.heroTitle3', 'and Trusted Supply Chain.')}</span>
+            </h1>
 
-              <p className="text-base sm:text-lg text-textSecondary leading-relaxed max-w-xl">
-                {t('home.heroSubtitle')}
-              </p>
+            {/* Subtitle / Description */}
+            <p className={`text-textSecondary leading-relaxed max-w-xl ${isKn ? 'text-sm sm:text-base lg:text-[16px] pt-0.5' : 'text-base sm:text-lg lg:text-[18px]'}`}>
+              {t('home.heroSubtitle', 'One batch. One timeline. From landing to sale. Safe seafood for a healthier tomorrow.')}
+            </p>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <button
-                  onClick={() => setScannerOpen(true)}
-                  className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm text-white bg-ocean-600 hover:bg-ocean-700 shadow-md hover:shadow-hover transition-all transform hover:-translate-y-0.5"
-                >
-                  <QrCode className="w-5 h-5" />
-                  <span>{t('home.scanCta')}</span>
-                </button>
+            {/* Action Buttons: on the same row on desktop */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-1">
+              <button
+                onClick={() => setScannerOpen(true)}
+                className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm text-white bg-ocean-600 hover:bg-ocean-700 shadow-md hover:shadow-hover transition-all transform hover:-translate-y-0.5 w-full sm:w-auto"
+              >
+                <QrCode className="w-5 h-5 shrink-0" />
+                <span>{t('home.scanCta', 'Scan a QR Code')}</span>
+              </button>
 
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-navy-900 bg-white hover:bg-slate-50 border border-borderLight shadow-sm transition-all"
-                >
-                  <span>{t('home.exploreCta')}</span>
-                  <ArrowRight className="w-4 h-4 text-ocean-600" />
-                </a>
-              </div>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-navy-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm transition-all w-full sm:w-auto"
+              >
+                <span>{t('home.exploreCta', 'Explore How It Works')}</span>
+                <ArrowRight className="w-4 h-4 text-ocean-600 shrink-0" />
+              </a>
+            </div>
 
-              {/* Fast Batch Lookup Input */}
-              <div className="pt-4 max-w-md">
-                <form onSubmit={handleLookup} className="flex items-center gap-2 bg-white p-1.5 rounded-xl border border-borderLight shadow-sm">
-                  <div className="pl-3 text-textSecondary">
-                    <Search className="w-4 h-4" />
+            {/* Fast Batch Lookup Search Form: max-w ~600-650px */}
+            <div className="pt-2 w-full max-w-[620px]">
+              <form
+                onSubmit={handleLookup}
+                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm focus-within:ring-2 focus-within:ring-ocean-500/20 focus-within:border-ocean-500 transition-all"
+              >
+                <div className="flex items-center flex-1 min-w-0">
+                  <div className="pl-2 text-textSecondary shrink-0">
+                    <Search className="w-5 h-5 text-slate-400" />
                   </div>
                   <input
                     type="text"
                     value={lookupId}
                     onChange={(e) => setLookupId(e.target.value.toUpperCase())}
-                    placeholder={t('home.lookupPlaceholder')}
-                    className="flex-1 bg-transparent px-2 py-2 text-xs font-mono uppercase focus:outline-none text-navy-900"
+                    placeholder={t('home.lookupPlaceholder', 'Enter Batch ID (e.g. FB-20261028-0001)')}
+                    className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-xs sm:text-sm font-mono uppercase focus:outline-none text-navy-900 font-semibold"
                   />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-lg bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition-colors whitespace-nowrap"
-                  >
-                    {t('actions.trace')}
-                  </button>
-                </form>
-                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-textSecondary">
-                  <span>{t('home.trySample')}</span>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/trace/FB-20261028-0001')}
-                    className="font-mono text-ocean-600 hover:underline font-semibold"
-                  >
-                    FB-20261028-0001
-                  </button>
                 </div>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shadow-xs w-full sm:w-auto"
+                >
+                  {t('actions.trace', 'Trace Batch')}
+                </button>
+              </form>
+              <div className="mt-2.5 flex items-center gap-2 text-xs text-textSecondary">
+                <span>{t('home.trySample', 'Try sample batch:')}</span>
+                <button
+                  type="button"
+                  onClick={() => navigate('/trace/FB-20261028-0001')}
+                  className="font-mono text-ocean-600 hover:underline font-semibold"
+                >
+                  FB-20261028-0001
+                </button>
               </div>
-
             </div>
 
-            {/* Right Column: Coastal Harbour & Seafood Image Container matching reference */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[4/3] group">
+            {/* Mobile / Tablet Image Display (Stacked Below Content) */}
+            <div className="block lg:hidden pt-4 relative w-full">
+              <div className="relative w-full max-w-lg mx-auto">
                 <img
-                  src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1000&auto=format&fit=crop&q=80"
-                  alt="Mangaluru Fishing Harbour and Boats"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  src="/images/catchtrace-hero.png"
+                  alt="Coastal Fishing Harbour and Ocean Catch"
+                  className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-sm"
+                  style={{ aspectRatio: '1024/426' }}
+                  loading="eager"
                 />
-                
-                {/* Soft blue gradient overlay matching mockup */}
-                <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent"></div>
-
-                {/* Floating Status Pill */}
-                <div className="absolute bottom-5 left-5 right-5 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-white/60 shadow-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-navy-900">{t('home.verifiedBanner')}</h4>
-                      <p className="text-[11px] text-textSecondary">{t('home.verifiedSub')}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-full">
-                    {t('home.intactBadge')}
-                  </span>
-                </div>
-
               </div>
             </div>
 

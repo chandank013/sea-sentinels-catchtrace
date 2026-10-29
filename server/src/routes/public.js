@@ -1,28 +1,21 @@
 import express from 'express';
 import { BATCHES } from '../db/store.js';
+import { serializeEventForViewer } from '../services/eventSerializer.js';
 
 const router = express.Router();
 
 // GET /api/public/trace/:id
 router.get('/trace/:id', (req, res) => {
-  const batch = BATCHES.find((b) => b.batch_id === req.params.id);
+  const targetId = (req.params.id || '').trim().toLowerCase();
+  const batch = BATCHES.find((b) => b.batch_id && b.batch_id.toLowerCase() === targetId);
   if (!batch) {
     return res.status(404).json({ error: 'Batch not found' });
   }
 
-  const isTampered = batch.events.some((e) => e.hash && e.hash.startsWith('TAMPERED_'));
+  const isTampered = (batch.events || []).some((e) => e.hash && e.hash.startsWith('TAMPERED_'));
 
-  // Consumer safe fields
-  const sanitizedEvents = batch.events.map((e) => ({
-    seq: e.seq,
-    event_type: e.event_type,
-    title: e.title,
-    org_name: e.org_name,
-    location: e.location,
-    weight_kg: e.weight_kg,
-    occurred_at: e.occurred_at,
-    temp_c: e.temp_c,
-  }));
+  // Consumer safe fields serialized for public unauthenticated viewer
+  const sanitizedEvents = (batch.events || []).map((e) => serializeEventForViewer(e, null));
 
   return res.json({
     batch_id: batch.batch_id,
@@ -34,6 +27,10 @@ router.get('/trace/:id', (req, res) => {
     status: batch.status,
     image: batch.image,
     isVerified: !isTampered,
+    integrity: {
+      is_intact: !isTampered,
+      message: !isTampered ? 'Cryptographically Verified Intact' : 'Tampered Record Detected',
+    },
     events: sanitizedEvents,
   });
 });

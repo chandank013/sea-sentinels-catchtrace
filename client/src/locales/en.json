@@ -332,7 +332,15 @@
     "roleAccess": "Role Access Level",
     "sessionStatus": "Session Status",
     "authenticated": "Authenticated (JWT Active)",
-    "fastSwitch": "Fast Switch Role (Hackathon Demo Feature):"
+    "accountId": "Account / Stakeholder ID",
+    "registeredEmail": "Registered Email Address",
+    "securityNote": "Cryptographic Identity & Ledger Compliance",
+    "securityNoteDesc": "This profile is bound to the Karnataka Coastal Fisheries digital cryptographic ledger. All logged handovers and batch creations are immutably signed with your identity.",
+    "signOutSwitch": "Sign Out & Switch Account",
+    "settingsBtn": "System Settings",
+    "confirmSignOut": "Signed out successfully. Select your next account to continue the demonstration.",
+    "activeSession": "Active Session",
+    "ledgerVerified": "Ledger Node Verified"
   },
   "settings": {
     "title": "Account & System Settings",
@@ -364,7 +372,7 @@
   },
   "auth": {
     "welcomeBack": "Welcome Back to CatchTrace",
-    "signInSub": "Select your supply chain role and enter your security PIN to access your operational dashboard.",
+    "signInSub": "Enter your registered email address and 4-digit security PIN to access your operational dashboard.",
     "fullName": "Full name",
     "roleInChain": "Role in supply chain",
     "orgOrVessel": "Organization or vessel name",

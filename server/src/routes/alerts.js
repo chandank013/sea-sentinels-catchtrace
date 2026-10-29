@@ -5,7 +5,7 @@ const router = express.Router();
 
 // GET /api/alerts
 router.get('/', (req, res) => {
-  const { type, severity, resolved } = req.query;
+  const { type, severity, resolved, status } = req.query;
   let results = [...ALERTS];
 
   if (type && type !== 'ALL') {
@@ -14,7 +14,10 @@ router.get('/', (req, res) => {
   if (severity && severity !== 'ALL') {
     results = results.filter((a) => a.severity === severity);
   }
-  if (resolved !== undefined && resolved !== 'ALL') {
+  if (status && status !== 'ALL') {
+    const isResolved = status === 'RESOLVED';
+    results = results.filter((a) => a.resolved === isResolved);
+  } else if (resolved !== undefined && resolved !== 'ALL') {
     const isRes = resolved === 'true' || resolved === true;
     results = results.filter((a) => a.resolved === isRes);
   }

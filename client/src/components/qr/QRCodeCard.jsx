@@ -109,12 +109,12 @@ export default function QRCodeCard({ batchId, species, isNew = false }) {
           level="H"
           includeMargin={false}
           imageSettings={{
-            src: '/fish-logo.svg',
+            src: '/images/catchtrace-logo.png',
             x: undefined,
             y: undefined,
-            height: 28,
-            width: 28,
-            excavat: true,
+            height: 26,
+            width: 39,
+            excavate: true,
           }}
         />
         <div className="text-[11px] text-textSecondary mt-2 flex items-center justify-center gap-1">

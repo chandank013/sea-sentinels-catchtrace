@@ -5,6 +5,8 @@ import {
   getStoredAlerts,
   saveStoredAlerts,
   sha256,
+  INITIAL_BATCHES,
+  INITIAL_ALERTS,
 } from './mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -66,7 +68,8 @@ export function filterBatchesByRole(batches, user) {
       const matchPurchase = (b.events || []).some(
         (e) =>
           e.event_type === 'PURCHASE' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+            (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
             (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (
@@ -81,7 +84,8 @@ export function filterBatchesByRole(batches, user) {
       const matchProcessing = (b.events || []).some(
         (e) =>
           e.event_type === 'PROCESSING' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+            (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
             (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (
@@ -96,7 +100,8 @@ export function filterBatchesByRole(batches, user) {
       return (b.events || []).some(
         (e) =>
           e.event_type && e.event_type.startsWith('TRANSPORT') &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+            (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
             (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
     });
@@ -107,7 +112,8 @@ export function filterBatchesByRole(batches, user) {
       const matchSale = (b.events || []).some(
         (e) =>
           e.event_type === 'SALE' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+            (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
             (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (
@@ -230,6 +236,17 @@ function checkAlertRules(batch, newEvent, allAlerts) {
 }
 
 export const api = {
+  // Authentication
+  async login(payload) {
+    const res = await client.post('/api/auth/login', payload);
+    return res.data;
+  },
+
+  async register(payload) {
+    const res = await client.post('/api/auth/register', payload);
+    return res.data;
+  },
+
   // Fetch Batches
   async getBatches(params = {}) {
     try {
@@ -281,12 +298,13 @@ export const api = {
 
   // Fetch Batch by ID
   async getBatchById(id) {
+    const cleanId = (id || '').trim();
     try {
-      const res = await client.get(`/api/batches/${id}`);
+      const res = await client.get(`/api/batches/${cleanId}`);
       return res.data;
     } catch {
       const list = getStoredBatches();
-      const found = list.find((b) => b.batch_id === id);
+      const found = list.find((b) => b.batch_id && b.batch_id.toLowerCase() === cleanId.toLowerCase());
       if (!found) {
         throw new Error(`Batch ${id} not found`);
       }
@@ -358,6 +376,9 @@ export const api = {
   async addEvent(batchId, eventData, user) {
     try {
       const res = await client.post(`/api/batches/${batchId}/events`, eventData);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+      }
       return res.data;
     } catch {
       const batches = getStoredBatches();
@@ -490,12 +511,13 @@ export const api = {
 
   // Public Trace Endpoint (No Auth Required)
   async getPublicTrace(batchId) {
+    const cleanId = (batchId || '').trim();
     try {
-      const res = await client.get(`/api/public/trace/${batchId}`);
+      const res = await client.get(`/api/public/trace/${cleanId}`);
       return res.data;
     } catch {
       const batches = getStoredBatches();
-      const found = batches.find((b) => b.batch_id === batchId);
+      const found = batches.find((b) => b.batch_id && b.batch_id.toLowerCase() === cleanId.toLowerCase());
       if (!found) throw new Error(`Batch ${batchId} not found`);
 
       // Verify integrity for the public badge
@@ -523,6 +545,10 @@ export const api = {
         status: found.status,
         image: found.image,
         isVerified: !isTampered,
+        integrity: {
+          is_intact: !isTampered,
+          message: !isTampered ? 'Cryptographically Verified Intact' : 'Tampered Record Detected',
+        },
         events: sanitizedEvents,
       };
     }
@@ -778,6 +804,9 @@ export const api = {
         resolved: true,
         resolution_note: resolutionNote,
       });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+      }
       return res.data;
     } catch {
       const alerts = getStoredAlerts();
@@ -788,6 +817,9 @@ export const api = {
       alerts[idx].status = 'RESOLVED';
       alerts[idx].resolution_note = resolutionNote;
       saveStoredAlerts(alerts);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+      }
       return alerts[idx];
     }
   },
@@ -828,5 +860,160 @@ export const api = {
     link.click();
     document.body.removeChild(link);
     return true;
+  },
+
+  // Confirm Event
+  async confirmEvent(batchId, eventId, data = {}) {
+    try {
+      const res = await client.post(`/api/batches/${batchId}/events/${eventId}/confirm`, data);
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      const batches = getStoredBatches();
+      const batch = batches.find((b) => (b.batch_id || '').toLowerCase() === (batchId || '').toLowerCase());
+      if (!batch) throw new Error(`Batch ${batchId} not found`);
+
+      const ev = (batch.events || []).find((e) => String(e.seq) === String(eventId) || String(e.id) === String(eventId));
+      if (!ev) throw new Error(`Event ${eventId} not found`);
+
+      ev.confirmation_status = 'CONFIRMED';
+      ev.confirmed_by = 'Authorized Receiver';
+      ev.confirmed_at = new Date().toISOString();
+      if (data.grade_confirmed) ev.grade_confirmed = data.grade_confirmed;
+
+      saveStoredBatches(batches);
+      return { message: 'Event confirmed successfully', event: ev, batch };
+    }
+  },
+
+  // Dispute Event
+  async disputeEvent(batchId, eventId, data = {}) {
+    try {
+      const res = await client.post(`/api/batches/${batchId}/events/${eventId}/dispute`, data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+      }
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      const batches = getStoredBatches();
+      const batch = batches.find((b) => (b.batch_id || '').toLowerCase() === (batchId || '').toLowerCase());
+      if (!batch) throw new Error(`Batch ${batchId} not found`);
+
+      const ev = (batch.events || []).find((e) => String(e.seq) === String(eventId) || String(e.id) === String(eventId));
+      if (!ev) throw new Error(`Event ${eventId} not found`);
+
+      ev.confirmation_status = 'DISPUTED';
+      ev.confirmed_by = 'Authorized Receiver';
+      ev.confirmed_at = new Date().toISOString();
+      ev.dispute_note = data.dispute_note;
+      if (data.photo_url) ev.photo_url = data.photo_url;
+      if (data.grade_confirmed) ev.grade_confirmed = data.grade_confirmed;
+
+      batch.status = 'FLAGGED';
+
+      const allAlerts = getStoredAlerts();
+      const newAlert = {
+        id: `alt_disp_${Date.now()}`,
+        batch_id: batch.batch_id,
+        event_id: String(ev.seq || eventId),
+        type: 'INTEGRITY_DISPUTE',
+        typeLabel: 'Handover Disputed',
+        severity: 'HIGH',
+        description: `Dispute on Step #${ev.seq} (${ev.title || ev.event_type}): ${data.dispute_note}`,
+        message: data.dispute_note,
+        time: 'Just now',
+        detected_at: new Date().toISOString(),
+        status: 'OPEN',
+        resolved: false,
+        resolution_note: null,
+      };
+      allAlerts.unshift(newAlert);
+      saveStoredAlerts(allAlerts);
+      saveStoredBatches(batches);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+      }
+
+      return { message: 'Dispute recorded', event: ev, batch, alert: newAlert };
+    }
+  },
+
+  // Get Verified Certificate
+  async getCertificate(batchId) {
+    try {
+      const res = await client.get(`/api/batches/${batchId}/certificate`);
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      const batches = getStoredBatches();
+      const batch = batches.find((b) => b.batch_id === batchId);
+      if (!batch) throw new Error(`Batch ${batchId} not found`);
+
+      if (batch.status !== 'SOLD') {
+        throw new Error('Not yet eligible — batch must be sold with no disputes.');
+      }
+      const hasDispute = (batch.events || []).some((e) => e.confirmation_status === 'DISPUTED');
+      if (hasDispute) {
+        throw new Error('Not yet eligible — batch contains disputed events.');
+      }
+      const all_confirmed = (batch.events || []).every((e) => e.confirmation_status === 'CONFIRMED');
+
+      return {
+        certificate_id: `CT-CERT-${batch.batch_id}`,
+        batch_id: batch.batch_id,
+        species: batch.species,
+        landing_centre: batch.landing_centre,
+        landed_at: batch.landed_at,
+        initial_weight_kg: batch.initial_weight_kg,
+        current_weight_kg: batch.current_weight_kg,
+        boat_name: batch.boat_name,
+        operator_name: batch.operator_name,
+        status: batch.status,
+        all_confirmed,
+        events: batch.events,
+        certified_at: new Date().toISOString(),
+        qr_url: `https://catchtrace.in/trace/${batch.batch_id}`,
+        verifier: 'CatchTrace National Seafood Traceability Ledger',
+      };
+    }
+  },
+
+  // Get User Trust Score
+  async getUserTrustScore(userId) {
+    try {
+      const res = await client.get(`/api/users/${userId}/trust-score`);
+      return res.data;
+    } catch {
+      return {
+        user_id: userId,
+        trust_score: 95,
+        confirmed_count: 19,
+        disputed_count: 1,
+      };
+    }
+  },
+
+  // Reset Demo Data (Backend & LocalStorage)
+  async resetData() {
+    try {
+      await client.post('/api/batches/reset');
+    } catch {
+      // offline fallback
+    }
+    saveStoredBatches(INITIAL_BATCHES);
+    saveStoredAlerts(INITIAL_ALERTS);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('catchtrace_read_notifs');
+      sessionStorage.removeItem('catchtrace_seen_alert_ids');
+      window.dispatchEvent(new CustomEvent('catchtrace:alert-updated'));
+    }
   },
 };

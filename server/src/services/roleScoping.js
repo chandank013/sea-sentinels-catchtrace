@@ -39,7 +39,8 @@ export function filterBatchesByRole(batches, user) {
       const matchPurchase = (b.events || []).some(
         (e) =>
           e.event_type === 'PURCHASE' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+           (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
            (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (
@@ -54,7 +55,8 @@ export function filterBatchesByRole(batches, user) {
       const matchProcessing = (b.events || []).some(
         (e) =>
           e.event_type === 'PROCESSING' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+           (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
            (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (
@@ -69,7 +71,8 @@ export function filterBatchesByRole(batches, user) {
       return (b.events || []).some(
         (e) =>
           e.event_type && e.event_type.startsWith('TRANSPORT') &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+           (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
            (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
     });
@@ -80,7 +83,8 @@ export function filterBatchesByRole(batches, user) {
       const matchSale = (b.events || []).some(
         (e) =>
           e.event_type === 'SALE' &&
-          ((e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
+          ((e.actor_id && userId && e.actor_id.toLowerCase() === userId) ||
+           (e.actor_name && userName && e.actor_name.toLowerCase().includes(userName)) ||
            (e.org_name && userOrg && (userOrg.includes(e.org_name.toLowerCase()) || e.org_name.toLowerCase().includes(userOrg))))
       );
       const matchHandler = b.current_handler && userOrg && (

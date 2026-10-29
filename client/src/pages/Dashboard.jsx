@@ -224,7 +224,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
           
           {/* Left Card: Volume by Species (Recharts Bar Chart) */}
-          <div className="lg:col-span-7 bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+          <div className="lg:col-span-7 bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-base font-bold text-navy-900">
@@ -292,7 +292,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Card: Role Supply Chain Overview Metrics */}
-          <div className="lg:col-span-5 bg-white rounded-ct p-6 border border-borderLight shadow-subtle flex flex-col justify-between">
+          <div className="lg:col-span-5 bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-borderLight">
                 <h3 className="text-base font-bold text-navy-900">
@@ -321,7 +321,7 @@ export default function Dashboard() {
               </div>
 
               {/* Metric Breakdown Grid */}
-              <div className="grid grid-cols-2 gap-4 pt-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-5">
                 
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-1.5 text-textSecondary text-[11px] font-semibold mb-1">
@@ -343,7 +343,7 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 col-span-2">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 col-span-1 sm:col-span-2">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5 text-textSecondary text-[11px] font-semibold">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -378,7 +378,7 @@ export default function Dashboard() {
           {/* Section 1 */}
           {isAdmin ? (
             /* ADMIN: Recent Alerts Section */
-            <div className="lg:col-span-6 bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+            <div className="lg:col-span-6 bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
               <div className="flex items-center justify-between pb-3 border-b border-borderLight mb-3">
                 <div>
                   <h3 className="text-base font-bold text-navy-900">{t('dashboard.recentAlerts')}</h3>
@@ -417,7 +417,7 @@ export default function Dashboard() {
             </div>
           ) : (
             /* NON-ADMIN: Operational Guide Card */
-            <div className="lg:col-span-6 bg-white rounded-ct p-6 border border-borderLight shadow-subtle flex flex-col justify-between">
+            <div className="lg:col-span-6 bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-borderLight mb-3">
                   <h3 className="text-base font-bold text-navy-900">
@@ -468,7 +468,7 @@ export default function Dashboard() {
           )}
 
           {/* Section 2: Recent Batches */}
-          <div className="lg:col-span-6 bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+          <div className="lg:col-span-6 bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between pb-3 border-b border-borderLight mb-3">
               <div>
                 <h3 className="text-base font-bold text-navy-900">

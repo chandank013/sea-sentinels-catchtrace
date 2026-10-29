@@ -2,13 +2,12 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import CatchTraceLogo from '../common/CatchTraceLogo';
 import { useLanguage } from '../../context/LanguageContext';
-import { ShieldCheck, Anchor } from 'lucide-react';
 
 export default function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-white border-t border-borderLight text-textSecondary text-xs">
+    <footer className="bg-white border-t border-borderLight text-textSecondary text-xs print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
@@ -18,14 +17,6 @@ export default function Footer() {
             <p className="text-textSecondary text-xs leading-relaxed max-w-sm mt-2">
               {t('footer.description')}
             </p>
-            <div className="flex items-center gap-2 text-[11px] text-ocean-700 font-semibold pt-1">
-              <span className="inline-flex items-center gap-1 bg-ocean-50 px-2 py-0.5 rounded border border-ocean-100">
-                <Anchor className="w-3 h-3" /> {t('footer.karnatakaCoastal')}
-              </span>
-              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded border border-emerald-100">
-                <ShieldCheck className="w-3 h-3" /> {t('footer.verifiedLedger')}
-              </span>
-            </div>
           </div>
 
           {/* Quick links */}

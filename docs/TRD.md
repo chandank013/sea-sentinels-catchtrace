@@ -4,22 +4,24 @@
 **Team:** Sea Sentinels  
 **Hackathon / Event:** LEAP Hackathon Mangaluru (28–29 October 2026)  
 **Problem Statement:** Problem Statement 6 — Fragmented Digital Records Across the Fish Supply Chain  
-**Document Version:** 2.0 (Updated to reflect full live implementation till date)  
-**Status:** Implemented & Verified MVP  
+**Document Version:** 2.1 (Updated to reflect latest production features, audit reports, dispute workflows, and pitch-ready interface)  
+**Status:** Implemented, Production-Grade & Verified  
 
 ---
 
 ## 1. System Architecture
 
-CatchTrace is engineered as a decoupled client-server architecture with an append-only cryptographic event log and an automated rules-based alerts engine.
+CatchTrace is engineered as a decoupled client-server architecture with an append-only cryptographic event log, two-party handover confirmation, and an automated rules-based alerts engine.
 
 ```mermaid
 flowchart TD
     subgraph Client["Frontend Client (React 18 + Vite + Tailwind)"]
         UI["UI Pages & Dashboards"]
         i18n["LanguageContext (EN / KN Dictionaries)"]
-        AuthContext["AuthContext (JWT + Role Scoping)"]
+        AuthContext["AuthContext (JWT + Role Scoping + Auto-Refresh)"]
         QR["QR Generator & Camera Scanner (html5-qrcode)"]
+        PrintEngine["A4 Printable PDF Report Engine (CSS Paged Media)"]
+        UserAvatar["Initials-Based UserAvatar Component"]
     end
 
     subgraph API["Backend API (Node.js 20 + Express)"]
@@ -27,6 +29,7 @@ flowchart TD
         AuthMid["JWT Auth & Role Enforcement Middleware"]
         CryptoService["SHA-256 Hash Chain Engine"]
         AlertsEngine["Rule-Based Alerts Evaluator"]
+        TrustEngine["Dynamic User Trust Scoring Service"]
     end
 
     subgraph Storage["Data Tier (Dual Mode)"]
@@ -38,10 +41,14 @@ flowchart TD
     Router --> AuthMid
     AuthMid --> CryptoService
     AuthMid --> AlertsEngine
+    AuthMid --> TrustEngine
     CryptoService --> Storage
     AlertsEngine --> Storage
+    TrustEngine --> Storage
     i18n -.-> UI
     AuthContext -.-> UI
+    PrintEngine -.-> UI
+    UserAvatar -.-> UI
 ```
 
 ---
@@ -49,14 +56,16 @@ flowchart TD
 ## 2. Technology Stack
 
 ### 2.1 Client Layer
-- **Core Framework:** React 18 with Vite (Ultra-fast HMR and bundle compilation).
-- **Styling & Design System:** Tailwind CSS with custom coastal enterprise palette (Ocean Blue, Deep Navy, Seafoam Emerald, Alert Amber).
+- **Core Framework:** React 18 with Vite (sub-second HMR and production bundle optimization).
+- **Styling & Design System:** Tailwind CSS with coastal enterprise palette (Ocean Blue, Deep Navy, Seafoam Emerald, Alert Amber).
+- **Print Optimization:** CSS Paged Media standards (`@page { size: A4 portrait; margin: 10mm 12mm; }`, `-webkit-print-color-adjust: exact !important`) powering clean PDF reports.
 - **Icons & Visuals:** `lucide-react` enterprise vector icon library.
 - **Charts & Data Visualization:** `recharts` for responsive volume-by-species and KPI trend distribution.
-- **Hardware Integration:** `html5-qrcode` for multi-platform camera QR scanning (rear mobile camera and webcam).
-- **QR Generation:** `qrcode.react` for vector SVG / Canvas QR rendering.
-- **Notifications & Delighters:** `react-hot-toast` for dockside toast notifications; `canvas-confetti` for successful onboarding.
-- **Internationalization:** Custom high-performance `LanguageContext` consuming nested JSON dictionaries (`en.json` and `kn.json`).
+- **Hardware Integration:** `html5-qrcode` for multi-platform camera QR scanning (rear mobile camera and desktop webcam).
+- **QR Generation:** `qrcode.react` (`QRCodeSVG` & Canvas) for vector QR rendering.
+- **User Avatars:** Dynamic initials generator (`UserAvatar.jsx`) with role-based gradient backgrounds (zero third-party image host dependencies).
+- **Notifications & Feedback:** `react-hot-toast` for dockside toast notifications; `canvas-confetti` for celebratory milestones.
+- **Internationalization:** High-performance `LanguageContext` consuming nested JSON dictionaries (`en.json` and `kn.json`).
 
 ### 2.2 Server Layer
 - **Runtime:** Node.js 20 LTS.
@@ -84,10 +93,13 @@ flowchart TD
   "location": "Mangaluru Harbour",
   "email": "ramesh.fisher@gmail.com",
   "pin_hash": "$2a$10$e8wZ...",
+  "confirmed_count": 14,
+  "disputed_count": 1,
+  "trust_score": 93.3,
   "created_at": "2026-10-28T04:30:00.000Z"
 }
 ```
-*Roles supported:* `FISHER`, `TRADER`, `PROCESSOR`, `TRANSPORTER`, `SELLER`, `ADMIN`.
+*Note on `trust_score`: Computed dynamically on read as `confirmed_count / (confirmed_count + disputed_count) * 100`, defaulting to `100` when both counts are `0`.*
 
 ### 3.2 Batch Model (`batches`)
 ```json
@@ -126,12 +138,20 @@ flowchart TD
   "price_per_kg": null,
   "yield_percent": null,
   "notes": "Landed by Trawler Sea Queen III",
+  "grade_claimed": "A",
+  "grade_confirmed": "A",
+  "confirmation_status": "CONFIRMED",
+  "confirmed_by": "usr_trader_01",
+  "confirmed_at": "2026-10-28T10:15:00.000Z",
+  "dispute_note": null,
+  "photo_url": null,
   "occurred_at": "2026-10-28T05:15:00.000Z",
   "recorded_at": "2026-10-28T05:20:00.000Z",
   "prev_hash": "GENESIS",
   "hash": "8f3b499e12c4..."
 }
 ```
+*Confirmation Status Enum:* `PENDING` (awaiting receiver check), `CONFIRMED` (handover accepted), `DISPUTED` (audit discrepancy raised).
 
 ### 3.4 Alert Model (`alerts`)
 ```json
@@ -176,7 +196,7 @@ $$\text{hash} = \text{SHA-256}(\text{CanonicalString})$$
   "isValid": true,
   "batch_id": "FB-20261028-0001",
   "totalSteps": 5,
-  "verifiedAt": "2026-10-28T12:00:00.000Z",
+  "verifiedAt": "2026-10-29T08:00:00.000Z",
   "lastHash": "b3e94a...",
   "brokenStep": null
 }
@@ -198,6 +218,7 @@ Evaluated synchronously on every new event insertion:
 | **`TIME_GAP`** | Unreasonable Delay | Gap between consecutive handover steps $> 6\text{ hours}$. | `LOW` |
 | **`MISSING_STEP`** | Out-of-Order Lifecycle | `SALE` attempted without prior `TRANSPORT` or `PURCHASE`. | `HIGH` |
 | **`INTEGRITY`** | Broken Hash Link | Recomputed hash does not match stored hash. | `HIGH` |
+| **`INTEGRITY_DISPUTE`**| Counterparty Handover Dispute | Receiving actor rejected handover due to damaged grade, spoiled cold-chain, or quantity mismatch. | `HIGH` |
 
 ---
 
@@ -215,14 +236,31 @@ Evaluated synchronously on every new event insertion:
 - `GET /api/batches/:id`: Returns batch metadata, chronological events list, and active alerts.
 - `POST /api/batches`: Creates new batch (restricted to `FISHER` and `ADMIN`). Automatically creates `seq: 1` `LANDING` event.
 - `GET /api/batches/:id/verify`: Executes live SHA-256 chain audit and returns integrity report.
+- `GET /api/batches/:id/certificate`: Returns official custody certificate if `batch.status === 'SOLD'` and zero `DISPUTED` events exist. Otherwise returns 404 with error message.
 
-### 6.3 Events Endpoints
-- `POST /api/batches/:id/events`: Appends new handover event. Enforces role permissions, updates `current_weight_kg`, computes SHA-256 hash, and triggers the alerts engine.
+### 6.3 Handover Confirmation & Dispute Endpoints
+- `POST /api/batches/:id/events/:eventId/confirm`: Confirms handover step.
+  - Protected: JWT Bearer required; checks receiving actor eligibility.
+  - Body: `{ grade_confirmed? }`.
+  - Action: Sets `confirmation_status = CONFIRMED`, `confirmed_by = req.user.id`, `confirmed_at = now`. Increments logging actor's `confirmed_count`.
+- `POST /api/batches/:id/events/:eventId/dispute`: Disputes handover step.
+  - Protected: JWT Bearer required; checks receiving actor eligibility.
+  - Body: `{ dispute_note, photo_url?, grade_confirmed? }`.
+  - Action: Sets `confirmation_status = DISPUTED`, `confirmed_by = req.user.id`, `confirmed_at = now`, increments logging actor's `disputed_count`, and creates an `INTEGRITY_DISPUTE` alert (`HIGH` severity).
 
-### 6.4 Public Consumer Endpoint
-- `GET /api/public/trace/:id`: Zero-authentication endpoint returning consumer-safe product provenance, authentic catch seal, and complete timeline. Masks sensitive commercial pricing.
+### 6.4 User Reputation & Trust Endpoints
+- `GET /api/users/:id/trust-score`: Computes dynamic trust score:
+  $$\text{trust\_score} = \frac{\text{confirmed\_count}}{\text{confirmed\_count} + \text{disputed\_count}} \times 100$$
+  Returns `{ user_id, trust_score, confirmed_count, disputed_count }`.
 
-### 6.5 Supervisory & Reporting Endpoints
+### 6.5 Events Endpoints
+- `POST /api/batches/:id/events`: Appends new handover event with claimed quality grade (`grade_claimed`). Enforces role permissions, updates `current_weight_kg`, computes SHA-256 hash, and triggers the alerts engine.
+
+### 6.6 Public Consumer Endpoint & Privacy Filtering
+- `GET /api/public/trace/:id`: Zero-authentication endpoint returning consumer-safe product provenance, authentic catch seal, and complete timeline.
+- **Privacy Rule:** Sanitized via `serializeEventForViewer(event, viewerUser)`. Excludes `price_per_kg` and private counterparty identity/contact fields from public/unauthenticated viewers, while preserving them for `ADMIN` and direct parties to the transaction.
+
+### 6.7 Supervisory & Reporting Endpoints
 - `GET /api/dashboard/summary`: Aggregates volume by species, role-specific metrics, and delivery integrity rates.
 - `GET /api/alerts`: Lists open or resolved alerts with optional severity filters.
 - `PATCH /api/alerts/:id`: Resolves an alert with an audited operator resolution note.
@@ -230,16 +268,46 @@ Evaluated synchronously on every new event insertion:
 
 ---
 
-## 7. Internationalization (i18n) Engine
+## 7. Official Printable A4 PDF Report Engine
 
-### 7.1 Architecture
+### 7.1 Separation of Interactive & Print Media
+To ensure clean exports without web chrome (navbars, search bars, interactive tabs), CatchTrace implements dual-mode document rendering:
+- Web UI is marked with Tailwind class `print:hidden`.
+- Dedicated Printable Report element is marked with `hidden print:block`.
+- Global stylesheet rule:
+  ```css
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm;
+    }
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background: white !important;
+    }
+  }
+  ```
+
+### 7.2 Printable Document Structure
+1. **Header Block:** Official CatchTrace emblem, ISO compliance metadata, regulatory authority accreditation (*Karnataka Coastal Fisheries*).
+2. **Batch Specification Grid:** Batch ID, Marine Species, Landing Harbour, Landing Date/Time, Vessel/Boat Name, Catch Weight.
+3. **Cryptographic Provenance Card:** Certified SHA-256 Genesis Hash and terminal chain verification hash.
+4. **Complete Chronological Handover Table:** Columns for Step (`#`), Stage/Event, Date & Time, Organization / Actor, Weight (kg), Temp (°C), Verification Status.
+5. **High-Resolution QR Code & Signoff:** Vector `QRCodeSVG` tag for instant smartphone verification alongside an official inspector seal/signature line.
+
+---
+
+## 8. Internationalization (i18n) Engine
+
+### 8.1 Architecture
 The application implements an ultra-responsive client-side translation framework:
 - Dictionaries: `client/src/locales/en.json` and `client/src/locales/kn.json`.
 - State Management: `LanguageContext.jsx` with `t(path, fallback)` nested path resolver.
 - Persistence: Stored in `localStorage` (`catchtrace_lang`).
 - Global Switcher: Available on all headers and navbars with one-click toggling.
 
-### 7.2 Dictionary Structure (22 Parallel Sections)
+### 8.2 Dictionary Structure (22 Parallel Sections)
 ```
 ├── brand           (Taglines, branding)
 ├── nav             (Links, badges, notifications)
@@ -258,7 +326,7 @@ The application implements an ultra-responsive client-side translation framework
 ├── scan            (Camera instructions, manual lookup)
 ├── alerts          (Alert table, filter tabs, resolution modal)
 ├── reports         (Species breakdowns, ESG compliance summary)
-├── profile         (Role switcher, operator badges, licence info)
+├── profile         (User credentials, session status, account switcher)
 ├── settings        (Language preference buttons, system toggles)
 ├── publicTrace     (Authenticity certificates, consumer transparency)
 ├── auth            (Email, PIN, login/register forms, help modals)
@@ -267,7 +335,7 @@ The application implements an ultra-responsive client-side translation framework
 
 ---
 
-## 8. Role-Based Access Control (RBAC) & Security
+## 9. Role-Based Access Control (RBAC) & Security
 
 1. **Authorization Middleware:** Verifies JWT token and asserts authorized role before permitting mutating actions:
    - Only `FISHER` / `ADMIN` can call `POST /api/batches`.
@@ -280,9 +348,9 @@ The application implements an ultra-responsive client-side translation framework
 
 ---
 
-## 9. Deployment & Verification Guide
+## 10. Deployment & Verification Guide
 
-### 9.1 Local Development
+### 10.1 Local Development
 ```bash
 # 1. Install dependencies
 npm --prefix server install
@@ -295,10 +363,12 @@ npm --prefix server start
 npm --prefix client run dev -- --host 0.0.0.0 --port 5173
 ```
 
-### 9.2 Verification Checklist
+### 10.2 Verification Checklist
 - [x] Backend responds on `http://localhost:5000/api/dashboard/summary`.
 - [x] Frontend runs on `http://localhost:5173/`.
 - [x] Clicking `🌐 ಕನ್ನಡ` dynamically translates all visible UI into authentic coastal Kannada.
 - [x] Batch creation generates valid sequential ID and printable QR code.
 - [x] Public trace route `/trace/FB-20261028-0001` renders unbroken SHA-256 timeline without requiring login.
-- [x] Alert resolution modal records operator notes and closes flags cleanly.
+- [x] Handover dispute modal logs dispute, updates trust scores, and raises `INTEGRITY_DISPUTE` alert.
+- [x] Print / PDF export on `/batches/:id` outputs clean A4 official audit report without web UI elements.
+- [x] Profile page displays initials avatar and "Sign Out & Switch Account" button routing smoothly to `/login`.

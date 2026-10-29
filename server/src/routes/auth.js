@@ -9,58 +9,92 @@ const router = express.Router();
 router.post('/login', (req, res) => {
   const { role, pin, email, identifier } = req.body;
   const loginEmail = (email || identifier || '').trim().toLowerCase();
+  const rawPin = (pin || '').trim();
 
-  // 1. If email / identifier provided
-  if (loginEmail && pin) {
+  if (!rawPin) {
+    return res.status(400).json({ error: '4-digit security PIN is required' });
+  }
+
+  // 1. If email / identifier provided (Primary standard login flow)
+  if (loginEmail) {
     const user = Object.values(USERS).find(
       (u) =>
-        (u.name.toLowerCase() === loginEmail ||
-          u.id === loginEmail ||
-          (u.email && u.email.toLowerCase() === loginEmail)) &&
-        u.pin === pin
+        u.name.toLowerCase() === loginEmail ||
+        u.id.toLowerCase() === loginEmail ||
+        u.role.toLowerCase() === loginEmail ||
+        (u.email && u.email.toLowerCase() === loginEmail)
     );
 
-    if (user) {
-      const token = jwt.sign(
-        { id: user.id, role: user.role, name: user.name, org: user.org },
-        config.JWT_SECRET,
-        { expiresIn: '12h' }
-      );
-      return res.json({ token, user });
+    if (!user) {
+      return res.status(404).json({
+        error: `No account found with email "${email || identifier}". Please check your email or register.`,
+      });
     }
+
+    if (user.pin !== rawPin) {
+      return res.status(401).json({
+        error: `Incorrect security PIN for ${user.name || user.email}. Please try again.`,
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, name: user.name, org: user.org },
+      config.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleLabel: user.roleLabel || user.role,
+        org: user.org,
+        location: user.location,
+      },
+    });
   }
 
-  // 2. If role & PIN provided
-  if (!role || !pin) {
-    return res.status(400).json({ error: 'Role and PIN are required' });
+  // 2. Fallback if role is provided directly
+  if (role) {
+    const roleUpper = role.trim().toUpperCase();
+    let user = USERS[roleUpper];
+    if (!user || user.pin !== rawPin) {
+      const matched = Object.values(USERS).find((u) => u.role === roleUpper && u.pin === rawPin);
+      if (matched) user = matched;
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: `User profile not found for role ${role}` });
+    }
+
+    if (user.pin !== rawPin) {
+      return res.status(401).json({ error: `Incorrect PIN for ${user.roleLabel || user.role}` });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, name: user.name, org: user.org },
+      config.JWT_SECRET,
+      { expiresIn: '12h' }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        roleLabel: user.roleLabel || user.role,
+        org: user.org,
+        location: user.location,
+      },
+    });
   }
 
-  const user = USERS[role.toUpperCase()];
-  if (!user) {
-    return res.status(404).json({ error: 'User profile not found for this role' });
-  }
-
-  if (user.pin !== pin) {
-    return res.status(401).json({ error: `Incorrect PIN for ${user.roleLabel}` });
-  }
-
-  const token = jwt.sign(
-    { id: user.id, role: user.role, name: user.name, org: user.org },
-    config.JWT_SECRET,
-    { expiresIn: '12h' }
-  );
-
-  return res.json({
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      roleLabel: user.roleLabel,
-      org: user.org,
-      location: user.location,
-    },
-  });
+  return res.status(400).json({ error: 'Email address and 4-digit PIN are required to sign in' });
 });
 
 // POST /api/auth/register

@@ -3,6 +3,7 @@ import { BATCHES } from '../db/store.js';
 
 const router = express.Router();
 
+// TODO: BUYER_PAID account_type gate for certificate bulk export and dashboard analytics
 // GET /api/export/batches.csv & /api/export/csv
 router.get(['/batches.csv', '/csv'], (req, res) => {
   const headers = [

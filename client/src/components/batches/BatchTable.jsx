@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
-import { Eye, PlusCircle, QrCode, ArrowRight, Anchor } from 'lucide-react';
+import { Eye, PlusCircle, QrCode, ArrowRight, Anchor, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -98,6 +98,14 @@ export default function BatchTable({ batches = [], onOpenQR }) {
                         </button>
                       )}
 
+                      <NavLink
+                        to={`/batches/${batch.batch_id}?print=true`}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-navy-900 hover:bg-slate-100 transition-colors"
+                        title={t('actions.downloadPdf')}
+                      >
+                        <FileText className="w-4 h-4" />
+                      </NavLink>
+
                       {batch.status !== 'SOLD' && (
                         <NavLink
                           to={`/batches/${batch.batch_id}/add-event`}
@@ -154,15 +162,23 @@ export default function BatchTable({ batches = [], onOpenQR }) {
                 {batch.events?.length || 1} {t('batchDetails.eventsLogged')}
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {onOpenQR && (
                   <button
                     onClick={() => onOpenQR(batch)}
                     className="p-1.5 text-ocean-600 hover:bg-ocean-50 rounded"
+                    title={t('actions.downloadQr')}
                   >
                     <QrCode className="w-4 h-4" />
                   </button>
                 )}
+                <NavLink
+                  to={`/batches/${batch.batch_id}?print=true`}
+                  className="p-1.5 text-slate-600 hover:bg-slate-100 rounded"
+                  title={t('actions.downloadPdf')}
+                >
+                  <FileText className="w-4 h-4" />
+                </NavLink>
                 <NavLink
                   to={`/batches/${batch.batch_id}`}
                   className="px-3 py-1.5 rounded-lg bg-ocean-600 text-white font-semibold text-xs flex items-center gap-1"

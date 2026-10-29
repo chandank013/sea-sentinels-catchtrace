@@ -73,42 +73,42 @@ export default function Reports() {
         </PageHeader>
 
         {/* Summary Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-textSecondary uppercase">{t('reports.totalBatches')}</span>
               <Boxes className="w-5 h-5 text-ocean-600" />
             </div>
-            <h3 className="text-3xl font-extrabold text-navy-900">{batches.length}</h3>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy-900">{batches.length}</h3>
             <span className="text-xs text-textSecondary mt-1 block">{t('reports.regionKarnataka')}</span>
           </div>
 
-          <div className="bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+          <div className="bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-textSecondary uppercase">{t('reports.totalBiomass')}</span>
               <Scale className="w-5 h-5 text-sky-600" />
             </div>
-            <h3 className="text-3xl font-extrabold text-navy-900">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy-900">
               {summary?.supplyChainStats?.totalWeightTrackedKg || '12,450 kg'}
             </h3>
             <span className="text-xs text-textSecondary mt-1 block">{t('reports.digitalScales')}</span>
           </div>
 
-          <div className="bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+          <div className="bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-textSecondary uppercase">{t('reports.avgTransit')}</span>
               <Clock className="w-5 h-5 text-tealbrand-500" />
             </div>
-            <h3 className="text-3xl font-extrabold text-navy-900">2.4 days</h3>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy-900">2.4 days</h3>
             <span className="text-xs text-textSecondary mt-1 block">{t('reports.landingToRetail')}</span>
           </div>
 
-          <div className="bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+          <div className="bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-textSecondary uppercase">{t('reports.totalAuditFlags')}</span>
               <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
-            <h3 className="text-3xl font-extrabold text-navy-900">{alerts.length}</h3>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-navy-900">{alerts.length}</h3>
             <span className="text-xs text-emerald-700 font-semibold mt-1 block">
               {alerts.filter((a) => a.resolved).length} {t('reports.resolvedByOfficer')}
             </span>
@@ -116,7 +116,7 @@ export default function Reports() {
         </div>
 
         {/* Species Breakdown Table */}
-        <div className="bg-white rounded-ct p-6 border border-borderLight shadow-subtle">
+        <div className="bg-white rounded-ct p-4 sm:p-6 border border-borderLight shadow-subtle">
           <h3 className="text-base font-bold text-navy-900 mb-1">{t('reports.speciesBreakdown')}</h3>
           <p className="text-xs text-textSecondary mb-4">{t('reports.speciesBreakdownSub')}</p>
 

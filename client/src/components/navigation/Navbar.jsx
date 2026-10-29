@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import CatchTraceLogo from '../common/CatchTraceLogo';
+import UserAvatar from '../common/UserAvatar';
 import {
   LayoutDashboard,
   Boxes,
@@ -18,10 +19,11 @@ import {
   Menu,
   X,
   ChevronDown,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, logout, notifications, markAllNotificationsRead } = useAuth();
+  const { user, logout, notifications, unreadCount, markAllNotificationsRead, markNotificationRead } = useAuth();
   const { lang, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,10 +59,10 @@ export default function Navbar() {
     navigate('/login');
   };
 
-  const role = user?.role || 'ADMIN';
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const role = (user?.role || 'ADMIN').toUpperCase();
+  const isAdmin = role === 'ADMIN';
 
-  // Role-aware navigation links per PRD & user prompt specifications
+  // Role-aware navigation links: Alerts is strictly reserved for ADMIN role
   const getNavLinks = () => {
     const commonDashboard = {
       to: '/dashboard',
@@ -118,12 +120,12 @@ export default function Navbar() {
       ];
     }
 
-    // Default / ADMIN
+    // Default / ADMIN (Includes statewide Alerts & Reports)
     return [
       commonDashboard,
       { to: '/batches', label: t('nav.allBatches'), icon: Boxes },
       { to: '/add-event', label: t('nav.addEvent'), icon: PlusCircle },
-      { to: '/alerts', label: t('nav.alerts'), icon: AlertTriangle, badge: 5 },
+      { to: '/alerts', label: t('nav.alerts'), icon: AlertTriangle, badge: unreadCount > 0 ? unreadCount : undefined },
       { to: '/reports', label: t('nav.reports'), icon: FileBarChart },
       commonScan,
     ];
@@ -132,7 +134,7 @@ export default function Navbar() {
   const navLinks = getNavLinks();
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-borderLight h-[72px] shadow-sm select-none">
+    <header className="sticky top-0 z-50 bg-white border-b border-borderLight h-[72px] shadow-sm select-none print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
         
         {/* Left Section: Logo, Brand name, Tagline */}
@@ -168,55 +170,127 @@ export default function Navbar() {
         </nav>
 
         {/* Right Section: Language Toggle, Notifications, User Avatar, Profile Dropdown */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3">
           
           {/* English / Kannada Toggle */}
           <button
             onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-borderLight text-navy-900 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-borderLight text-navy-900 hover:bg-slate-50 transition-colors shrink-0"
             title="Switch Language (English / ಕನ್ನಡ)"
           >
             <Globe className="w-3.5 h-3.5 text-ocean-600" />
             <span>{lang === 'en' ? 'ಕನ್ನಡ' : 'English'}</span>
           </button>
 
-          {/* Notification Bell */}
-          <div className="relative" ref={notifRef}>
+          {/* Notification Bell - Strictly displayed for ADMIN oversight */}
+          {isAdmin && (
+            <div className="relative shrink-0" ref={notifRef}>
             <button
-              onClick={() => {
-                setNotifOpen(!notifOpen);
-                if (!notifOpen) markAllNotificationsRead();
-              }}
+              onClick={() => setNotifOpen(!notifOpen)}
               className="relative p-2 rounded-lg text-textSecondary hover:text-navy-900 hover:bg-slate-100 transition-colors"
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-statusDanger rounded-full ring-2 ring-white"></span>
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-statusDanger text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
 
             {/* Notification Dropdown */}
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-ct shadow-hover border border-borderLight py-3 z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 bg-white rounded-ct shadow-hover border border-borderLight py-3 z-50 animate-fade-in">
                 <div className="px-4 pb-2 border-b border-borderLight flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-navy-900">{t('nav.notifications')}</h4>
-                  <span className="text-xs text-ocean-600 font-medium">{notifications.length} {t('nav.updates')}</span>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-sm font-bold text-navy-900">{t('nav.notifications')}</h4>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] font-bold text-statusDanger bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
+                        {unreadCount} {lang === 'kn' ? 'ಹೊಸ' : 'new'}
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsRead}
+                      className="text-xs text-ocean-600 hover:text-ocean-700 font-semibold transition-colors"
+                    >
+                      {lang === 'kn' ? 'ಎಲ್ಲವನ್ನೂ ಓದಿದೆ ಎಂದು ಗುರುತಿಸಿ' : 'Mark all read'}
+                    </button>
+                  )}
                 </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-borderLight/60">
-                  {notifications.map((n) => (
-                    <div key={n.id} className="p-3 text-xs hover:bg-slate-50 transition-colors flex items-start gap-2.5">
-                      <div className="w-2 h-2 mt-1 rounded-full bg-ocean-500 shrink-0"></div>
-                      <div className="flex-1">
-                        <p className="text-navy-900 font-medium leading-relaxed">{n.text}</p>
-                        <span className="text-[11px] text-textSecondary mt-1 block">{n.time}</span>
-                      </div>
+
+                <div className="max-h-80 overflow-y-auto divide-y divide-borderLight/60">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-textSecondary space-y-1">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
+                      <p className="font-semibold text-navy-900">
+                        {lang === 'kn' ? 'ಯಾವುದೇ ಸಕ್ರಿಯ ಎಚ್ಚರಿಕೆಗಳಿಲ್ಲ' : 'All clear!'}
+                      </p>
+                      <p className="text-[11px]">
+                        {lang === 'kn' ? 'ಸದ್ಯಕ್ಕೆ ಯಾವುದೇ ವಿವಾದಗಳು ಅಥವಾ ಉಲ್ಲಂಘನೆಗಳಿಲ್ಲ.' : 'No active system alert notifications.'}
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    notifications.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          if (markNotificationRead) markNotificationRead(n.id);
+                          setNotifOpen(false);
+                          if (n.batchId) navigate(`/batches/${n.batchId}`);
+                          else navigate('/alerts');
+                        }}
+                        className={`w-full text-left p-3 text-xs transition-colors flex items-start gap-2.5 hover:bg-slate-50 ${
+                          n.unread ? 'bg-amber-50/40' : ''
+                        }`}
+                      >
+                        <div
+                          className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${
+                            n.severity === 'HIGH' ? 'bg-red-500 ring-2 ring-red-100' : 'bg-amber-500'
+                          }`}
+                        ></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
+                                n.severity === 'HIGH'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {n.title}
+                            </span>
+                            <span className="text-[10px] text-textSecondary font-medium">{n.time}</span>
+                          </div>
+                          <p className="text-navy-900 font-medium leading-relaxed line-clamp-2">{n.text}</p>
+                          {n.batchId && (
+                            <span className="text-[10px] text-ocean-600 font-mono font-bold mt-1 inline-block hover:underline">
+                              {n.batchId} →
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <div className="p-2.5 border-t border-borderLight/60 bg-slate-50/80 text-center">
+                  <NavLink
+                    to="/alerts"
+                    onClick={() => setNotifOpen(false)}
+                    className="text-xs font-bold text-ocean-600 hover:text-ocean-700 flex items-center justify-center gap-1"
+                  >
+                    <span>{lang === 'kn' ? 'ಎಲ್ಲಾ ಎಚ್ಚರಿಕೆಗಳನ್ನು ವೀಕ್ಷಿಸಿ' : 'View all alerts'}</span>
+                    <span>→</span>
+                  </NavLink>
                 </div>
               </div>
             )}
           </div>
+          )}
 
           {/* User Profile Button & Dropdown */}
           <div className="relative" ref={profileRef}>
@@ -225,11 +299,7 @@ export default function Navbar() {
               className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-slate-50 transition-colors"
               aria-expanded={profileOpen}
             >
-              <img
-                src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'}
-                alt={user?.name || 'User'}
-                className="w-9 h-9 rounded-full object-cover border border-ocean-200 ring-2 ring-ocean-50"
-              />
+              <UserAvatar user={user} size="sm" />
               <div className="hidden md:block text-left">
                 <p className="text-xs font-bold text-navy-900 leading-none">{user?.name || 'User'}</p>
                 <span className="text-[11px] font-semibold text-ocean-600 uppercase tracking-wider block mt-0.5">

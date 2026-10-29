@@ -9,6 +9,7 @@ import publicRouter from './routes/public.js';
 import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
 import exportRouter from './routes/export.js';
+import usersRouter from './routes/users.js';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 app.use('/api/batches', batchesRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/dashboard', dashboardRouter);

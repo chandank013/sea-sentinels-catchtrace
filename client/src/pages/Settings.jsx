@@ -3,7 +3,7 @@ import Navbar from '../components/navigation/Navbar';
 import Footer from '../components/navigation/Footer';
 import PageHeader from '../components/common/PageHeader';
 import { useLanguage } from '../context/LanguageContext';
-import { INITIAL_BATCHES, INITIAL_ALERTS, saveStoredBatches, saveStoredAlerts } from '../services/mockData';
+import { api } from '../services/api';
 import {
   Globe,
   Bell,
@@ -15,18 +15,48 @@ import toast from 'react-hot-toast';
 
 export default function Settings() {
   const { lang, setLang, t } = useLanguage();
-  const [notifyAlerts, setNotifyAlerts] = useState(true);
-  const [notifyHandovers, setNotifyHandovers] = useState(true);
-  const [coldChainAlerts, setColdChainAlerts] = useState(true);
+  const [notifyAlerts, setNotifyAlerts] = useState(() => {
+    try {
+      const stored = localStorage.getItem('catchtrace_pref_notify_alerts');
+      return stored !== null ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
+  const [notifyHandovers, setNotifyHandovers] = useState(() => {
+    try {
+      const stored = localStorage.getItem('catchtrace_pref_notify_handovers');
+      return stored !== null ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
+  const [coldChainAlerts, setColdChainAlerts] = useState(() => {
+    try {
+      const stored = localStorage.getItem('catchtrace_pref_coldchain_alerts');
+      return stored !== null ? JSON.parse(stored) : true;
+    } catch {
+      return true;
+    }
+  });
 
-  const handleResetData = () => {
+  const togglePref = (key, val, setter) => {
+    setter(val);
+    localStorage.setItem(key, JSON.stringify(val));
+    toast.success(lang === 'kn' ? 'ಅಧಿಸೂಚನೆ ಪ್ರಾಶಸ್ತ್ಯ ನವೀಕರಿಸಲಾಗಿದೆ' : 'Notification preference updated');
+  };
+
+  const handleResetData = async () => {
     if (window.confirm('Reset all demo batches and alerts to original seed state?')) {
-      saveStoredBatches(INITIAL_BATCHES);
-      saveStoredAlerts(INITIAL_ALERTS);
-      toast.success('Seed data reset successfully! Refreshing...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
+      try {
+        await api.resetData();
+        toast.success('Seed data reset successfully! Refreshing...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } catch (err) {
+        toast.error('Failed to reset data');
+      }
     }
   };
 
@@ -41,7 +71,7 @@ export default function Settings() {
           subtitle={t('settings.subtitle')}
         />
 
-        <div className="bg-white rounded-ct p-6 sm:p-8 border border-borderLight shadow-card space-y-8">
+        <div className="bg-white rounded-ct p-4 sm:p-6 md:p-8 border border-borderLight shadow-card space-y-8">
           
           {/* Language Setting */}
           <div className="space-y-3 pb-6 border-b border-borderLight">
@@ -112,7 +142,7 @@ export default function Settings() {
                 <input
                   type="checkbox"
                   checked={notifyAlerts}
-                  onChange={(e) => setNotifyAlerts(e.target.checked)}
+                  onChange={(e) => togglePref('catchtrace_pref_notify_alerts', e.target.checked, setNotifyAlerts)}
                   className="w-4 h-4 text-ocean-600 rounded focus:ring-ocean-500"
                 />
               </label>
@@ -127,7 +157,7 @@ export default function Settings() {
                 <input
                   type="checkbox"
                   checked={coldChainAlerts}
-                  onChange={(e) => setColdChainAlerts(e.target.checked)}
+                  onChange={(e) => togglePref('catchtrace_pref_coldchain_alerts', e.target.checked, setColdChainAlerts)}
                   className="w-4 h-4 text-ocean-600 rounded focus:ring-ocean-500"
                 />
               </label>
@@ -142,7 +172,7 @@ export default function Settings() {
                 <input
                   type="checkbox"
                   checked={notifyHandovers}
-                  onChange={(e) => setNotifyHandovers(e.target.checked)}
+                  onChange={(e) => togglePref('catchtrace_pref_notify_handovers', e.target.checked, setNotifyHandovers)}
                   className="w-4 h-4 text-ocean-600 rounded focus:ring-ocean-500"
                 />
               </label>

@@ -10,25 +10,26 @@ export default function PublicNavbar({ isTracePage = false, isVerified = true })
   const { isAuthenticated } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-borderLight h-[72px] shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-borderLight h-[72px] shadow-sm print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
         
         {/* Logo */}
         <NavLink to="/" className="flex items-center">
-          <CatchTraceLogo size="md" showTagline={true} />
+          <CatchTraceLogo size="public" showTagline={true} />
         </NavLink>
 
         {/* Trace Page Badge or Landing Links */}
         {isTracePage ? (
           <div className="flex items-center gap-2">
             {isVerified ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                {t('nav.verifiedAuthentic')}
+              <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="hidden sm:inline">{t('nav.verifiedAuthentic')}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                {t('nav.unverifiedRecord')}
+              <span className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="hidden sm:inline">{t('nav.unverifiedRecord')}</span>
               </span>
             )}
           </div>

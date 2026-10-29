@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import CatchTraceLogo from '../components/common/CatchTraceLogo';
 import {
   Anchor,
   ShoppingBag,
@@ -165,45 +164,41 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-slate-900 font-sans selection:bg-ocean-100 selection:text-ocean-800">
+    <div className="login-page min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 text-slate-900 font-sans selection:bg-ocean-100 selection:text-ocean-800 relative">
       
-      {/* ========================================================= */}
-      {/* 1. COMPACT ENTERPRISE HEADER                              */}
-      {/* ========================================================= */}
-      <header className="w-full bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <NavLink to="/" className="flex items-center gap-2 group">
-            <CatchTraceLogo size="sm" showTagline={false} />
-            <span className="hidden sm:inline-block text-xs text-slate-400 font-medium pl-2 border-l border-slate-200">
-              {lang === 'kn' ? 'ಕರ್ನಾಟಕ ಕರಾವಳಿ ಮೀನುಗಾರಿಕೆ ವೇದಿಕೆ' : 'Seafood Supply-Chain Traceability'}
-            </span>
-          </NavLink>
+      {/* Floating Language Switcher */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/30 bg-white/80 hover:bg-white text-navy-900 backdrop-blur-md transition-all shadow-sm"
+          title="Change Language / ಭಾಷೆಯನ್ನು ಬದಲಾಯಿಸಿ"
+        >
+          <Globe className="w-3.5 h-3.5 text-ocean-600" />
+          <span>{lang === 'en' ? 'ಕನ್ನಡ' : 'English'}</span>
+        </button>
+      </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:border-ocean-300 transition-colors shadow-2xs"
-              title="Change Language / ಭಾಷೆಯನ್ನು ಬದಲಾಯಿಸಿ"
-            >
-              <Globe className="w-3.5 h-3.5 text-ocean-600" />
-              <span>{lang === 'en' ? 'ಕನ್ನಡ' : 'English'}</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ========================================================= */}
-      {/* 2. MAIN CONTENT — NARROW FOCUSED FORM AREA                */}
-      {/* ========================================================= */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12">
-        <div className="w-full max-w-[420px]">
+      {/* Main Centered Form Area */}
+      <div className="w-full max-w-[420px] my-auto">
+        {/* Crisp, restrained form container */}
+        <div className="bg-white/95 backdrop-blur-md border border-white/40 rounded-2xl p-5 sm:p-8 shadow-2xl">
           
-          {/* Crisp, restrained form container */}
-          <div className="bg-white border border-slate-200/90 rounded-xl p-6 sm:p-8 shadow-xs">
-            
+          {/* Centered CatchTrace Brand Emblem */}
+          <div className="flex justify-center mb-5">
+            <img
+              src="/images/catchtrace-logo.png"
+              alt="CatchTrace logo"
+              className="h-14 w-auto object-contain"
+              style={{ aspectRatio: '1024/682' }}
+              width={84}
+              height={56}
+              loading="eager"
+            />
+          </div>
+
             {/* Title & Subtitle */}
-            <div className="mb-6">
+            <div className="mb-6 text-center">
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                 {t('auth.registerTitle', 'Create your account')}
               </h1>
@@ -468,28 +463,7 @@ export default function Register() {
 
           </div>
 
-        </div>
-      </main>
-
-      {/* ========================================================= */}
-      {/* 3. UNDERSTATED ENTERPRISE FOOTER                          */}
-      {/* ========================================================= */}
-      <footer className="w-full bg-white border-t border-slate-200 py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span>{t('footer.rights', '© 2026 CatchTrace Platforms Inc. All rights reserved.')}</span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-500">
-            <span className="hover:text-slate-800 transition-colors cursor-pointer">{t('footer.privacy', 'Privacy Policy')}</span>
-            <span>·</span>
-            <span className="hover:text-slate-800 transition-colors cursor-pointer">{t('footer.terms', 'Terms of Service')}</span>
-            <span>·</span>
-            <span className="hover:text-slate-800 transition-colors cursor-pointer">{lang === 'kn' ? 'ಭದ್ರತೆ ಮತ್ತು ಅನುಸರಣೆ' : 'Security & Compliance'}</span>
-            <span>·</span>
-            <span className="hover:text-slate-800 transition-colors cursor-pointer">{lang === 'kn' ? 'ಸಹಾಯ ಕೇಂದ್ರ' : 'Support Desk'}</span>
-          </div>
-        </div>
-      </footer>
+      </div>
 
     </div>
   );

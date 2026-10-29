@@ -145,7 +145,7 @@ export default function PublicTrace() {
           </div>
 
           {/* Product Overview Attributes */}
-          <div className="p-6 bg-slate-50/70 border-b border-borderLight grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div className="p-4 sm:p-6 bg-slate-50/70 border-b border-borderLight grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs">
             <div>
               <span className="text-textSecondary uppercase font-semibold text-[10px] block">{t('batches.species')}</span>
               <span className="text-sm font-bold text-navy-900 mt-0.5 block">{t(`species.${traceData.species}`, traceData.species)}</span>
@@ -170,7 +170,7 @@ export default function PublicTrace() {
         </div>
 
         {/* Consumer Transparency Summary */}
-        <div className="bg-white rounded-2xl p-5 border border-borderLight shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-borderLight shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-ocean-50 text-ocean-600 flex items-center justify-center font-bold">
               <CheckCircle2 className="w-6 h-6 text-emerald-600" />
@@ -185,7 +185,7 @@ export default function PublicTrace() {
 
           <button
             onClick={() => setScannerOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-borderLight text-xs font-bold text-navy-900 hover:bg-slate-50 transition-colors self-start sm:self-auto"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-borderLight text-xs font-bold text-navy-900 hover:bg-slate-50 transition-colors self-stretch sm:self-auto"
           >
             <QrCode className="w-4 h-4 text-ocean-600" />
             <span>{t('publicTrace.scanAnother')}</span>
@@ -193,7 +193,7 @@ export default function PublicTrace() {
         </div>
 
         {/* Public Timeline matching mockup #7 */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-borderLight shadow-card">
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-borderLight shadow-card">
           <div className="pb-4 mb-6 border-b border-borderLight">
             <h3 className="text-base font-bold text-navy-900">{t('publicTrace.timelineTitle')}</h3>
             <p className="text-xs text-textSecondary mt-0.5">

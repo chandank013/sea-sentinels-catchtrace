@@ -104,7 +104,7 @@ export default function NewBatch() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Left Column: Landing Entry Form */}
-          <div className="lg:col-span-7 bg-white rounded-ct p-6 sm:p-8 border border-borderLight shadow-subtle">
+          <div className="lg:col-span-7 bg-white rounded-ct p-4 sm:p-6 md:p-8 border border-borderLight shadow-subtle">
             
             <div className="flex items-center gap-3 pb-5 mb-6 border-b border-borderLight">
               <div className="w-10 h-10 rounded-xl bg-ocean-50 text-ocean-600 flex items-center justify-center font-bold">

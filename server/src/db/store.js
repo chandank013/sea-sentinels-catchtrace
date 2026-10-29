@@ -1,5 +1,19 @@
 import { computeEventHash } from '../services/hashChain.js';
 
+// Helper to compute user trust score dynamically
+export function computeUserTrustScore(user) {
+  if (!user) return { trust_score: 100, confirmed_count: 0, disputed_count: 0 };
+  const confirmed = user.confirmed_count || 0;
+  const disputed = user.disputed_count || 0;
+  const total = confirmed + disputed;
+  const trust_score = total === 0 ? 100 : Math.round((confirmed / total) * 100);
+  return {
+    trust_score,
+    confirmed_count: confirmed,
+    disputed_count: disputed,
+  };
+}
+
 // Pre-seeded Demo Accounts
 export const USERS = {
   FISHER: {
@@ -11,6 +25,8 @@ export const USERS = {
     roleLabel: 'Fisher',
     org: 'Sea Queen Trawlers',
     location: 'Mangaluru Harbour',
+    confirmed_count: 14,
+    disputed_count: 1,
   },
   TRADER: {
     id: 'usr_trader_01',
@@ -21,6 +37,8 @@ export const USERS = {
     roleLabel: 'Trader',
     org: 'Coastal Traders & Auctions',
     location: 'Mangaluru Auction Yard',
+    confirmed_count: 18,
+    disputed_count: 0,
   },
   PROCESSOR: {
     id: 'usr_proc_01',
@@ -31,6 +49,8 @@ export const USERS = {
     roleLabel: 'Processor',
     org: 'Coastal Foods Pvt Ltd',
     location: 'Baikampady Industrial Estate',
+    confirmed_count: 12,
+    disputed_count: 0,
   },
   TRANSPORTER: {
     id: 'usr_trans_01',
@@ -41,6 +61,8 @@ export const USERS = {
     roleLabel: 'Transporter',
     org: 'Express Cold Logistics',
     location: 'NH 75 Mangaluru-Bengaluru',
+    confirmed_count: 15,
+    disputed_count: 2,
   },
   SELLER: {
     id: 'usr_seller_01',
@@ -51,6 +73,8 @@ export const USERS = {
     roleLabel: 'Seller / Vendor',
     org: 'Ocean Fresh Seafood Market',
     location: 'Bengaluru Wholesale Market',
+    confirmed_count: 20,
+    disputed_count: 0,
   },
   ADMIN: {
     id: 'usr_admin_01',
@@ -61,6 +85,8 @@ export const USERS = {
     roleLabel: 'System Administrator',
     org: 'Karnataka Fisheries Dept',
     location: 'Mangaluru Regional Office',
+    confirmed_count: 0,
+    disputed_count: 0,
   },
 };
 
@@ -85,6 +111,7 @@ export let BATCHES = [
         seq: 1,
         event_type: 'LANDING',
         title: 'Landed',
+        actor_id: 'usr_fisher_01',
         actor_name: 'Ramesh Naik (Fisher)',
         org_name: 'Sea Queen Trawlers',
         weight_kg: 250,
@@ -92,6 +119,11 @@ export let BATCHES = [
         location: 'Mangaluru Harbour, Berth 4',
         occurred_at: '2026-10-28T06:30:00Z',
         notes: 'Landing inspected by harbour officer, grade A catch',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_trader_01',
+        confirmed_at: '2026-10-28T10:15:00Z',
         prev_hash: 'GENESIS',
         hash: 'e83a910bf32a9a7d3c90e0c90f23ba5b4c4e7d8a9b0c1d2e3f4a5b6c7d8e9f01'
       },
@@ -99,6 +131,7 @@ export let BATCHES = [
         seq: 2,
         event_type: 'PURCHASE',
         title: 'Purchased',
+        actor_id: 'usr_trader_01',
         actor_name: 'Ganesh Pai (Trader)',
         org_name: 'Coastal Traders & Auctions',
         weight_kg: 240,
@@ -107,6 +140,11 @@ export let BATCHES = [
         location: 'Mangaluru Auction Yard',
         occurred_at: '2026-10-28T10:15:00Z',
         notes: 'Auction batch #44, purchased for Coastal Foods processing',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_proc_01',
+        confirmed_at: '2026-10-28T18:30:00Z',
         prev_hash: 'e83a910bf32a9a7d3c90e0c90f23ba5b4c4e7d8a9b0c1d2e3f4a5b6c7d8e9f01',
         hash: 'b4a92c01d4e7f8a9b0c1d2e3f4a5b6c7d8e9f01a2b3c4d5e6f7a8b9c0d1e2f3a'
       },
@@ -114,6 +152,7 @@ export let BATCHES = [
         seq: 3,
         event_type: 'PROCESSING',
         title: 'Processed',
+        actor_id: 'usr_proc_01',
         actor_name: 'Sunil Shenoy (Processor)',
         org_name: 'Coastal Foods Pvt Ltd',
         weight_kg: 180,
@@ -124,6 +163,11 @@ export let BATCHES = [
         location: 'Baikampady Industrial Estate, Unit 2',
         occurred_at: '2026-10-28T18:30:00Z',
         notes: 'Gutted, headless, blast-frozen in insulated boxes',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_trans_01',
+        confirmed_at: '2026-10-29T06:00:00Z',
         prev_hash: 'b4a92c01d4e7f8a9b0c1d2e3f4a5b6c7d8e9f01a2b3c4d5e6f7a8b9c0d1e2f3a',
         hash: 'c5b81a74d2e9f01a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a'
       },
@@ -131,6 +175,7 @@ export let BATCHES = [
         seq: 4,
         event_type: 'TRANSPORT_DROP',
         title: 'Transported',
+        actor_id: 'usr_trans_01',
         actor_name: 'Mohammed Rafi (Transporter)',
         org_name: 'Express Cold Logistics',
         weight_kg: 180,
@@ -138,6 +183,11 @@ export let BATCHES = [
         location: 'Mangaluru → Bengaluru Wholesale Market',
         occurred_at: '2026-10-29T06:00:00Z',
         notes: 'Refrigerated container truck KA-19-B-8821, route temp monitored',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_seller_01',
+        confirmed_at: '2026-10-29T12:30:00Z',
         prev_hash: 'c5b81a74d2e9f01a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a',
         hash: 'd6a70e83b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8'
       },
@@ -145,6 +195,7 @@ export let BATCHES = [
         seq: 5,
         event_type: 'SALE',
         title: 'Sold',
+        actor_id: 'usr_seller_01',
         actor_name: 'Anand Kumar (Seller)',
         org_name: 'Ocean Fresh Seafood Market',
         weight_kg: 175,
@@ -153,6 +204,11 @@ export let BATCHES = [
         location: 'Bengaluru Wholesale Fish Market, Stall 14',
         occurred_at: '2026-10-29T12:30:00Z',
         notes: 'Final batch retail sale to organic grocers. Batch completed.',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_admin_01',
+        confirmed_at: '2026-10-29T13:00:00Z',
         prev_hash: 'd6a70e83b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8',
         hash: '4f3a9c27b0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7'
       }
@@ -177,6 +233,7 @@ export let BATCHES = [
         seq: 1,
         event_type: 'LANDING',
         title: 'Landed',
+        actor_id: 'usr_fisher_01',
         actor_name: 'Prakash Harikantra',
         org_name: 'Karwar Marine Co-op',
         weight_kg: 520,
@@ -184,6 +241,8 @@ export let BATCHES = [
         location: 'Karwar Baithkol Port',
         occurred_at: '2026-10-26T05:00:00Z',
         notes: 'Initial weigh-in completed.',
+        grade_claimed: 'A',
+        confirmation_status: 'PENDING',
         prev_hash: 'GENESIS',
         hash: '2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a'
       }
@@ -208,6 +267,7 @@ export let BATCHES = [
         seq: 1,
         event_type: 'LANDING',
         title: 'Landed',
+        actor_id: 'usr_fisher_01',
         actor_name: 'Ravi Salian',
         org_name: 'Mangaluru Trawler Association',
         weight_kg: 310,
@@ -215,6 +275,11 @@ export let BATCHES = [
         location: 'Mangaluru Old Port',
         occurred_at: '2026-10-27T04:30:00Z',
         notes: 'Landed on ice',
+        grade_claimed: 'A',
+        grade_confirmed: 'A',
+        confirmation_status: 'CONFIRMED',
+        confirmed_by: 'usr_trader_01',
+        confirmed_at: '2026-10-27T07:30:00Z',
         prev_hash: 'GENESIS',
         hash: '4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c'
       },
@@ -222,6 +287,7 @@ export let BATCHES = [
         seq: 2,
         event_type: 'PURCHASE',
         title: 'Purchased (Tampered in DB)',
+        actor_id: 'usr_trader_01',
         actor_name: 'Ganesh Pai',
         org_name: 'Coastal Traders',
         weight_kg: 295,
@@ -230,6 +296,12 @@ export let BATCHES = [
         location: 'Mangaluru Auction Yard',
         occurred_at: '2026-10-27T08:00:00Z',
         notes: 'Price was maliciously manipulated from 480 to 620',
+        grade_claimed: 'A',
+        grade_confirmed: 'C',
+        confirmation_status: 'DISPUTED',
+        confirmed_by: 'usr_proc_01',
+        confirmed_at: '2026-10-27T08:30:00Z',
+        dispute_note: 'Audit discrepancy: price and weight manipulated in auction ledger',
         prev_hash: '4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c',
         hash: 'TAMPERED_INVALID_HASH_CORRUPTED_ENTRY_0000000000000000000000000000'
       }
@@ -302,6 +374,7 @@ for (let i = 16; i <= 40; i++) {
         seq: 1,
         event_type: 'LANDING',
         title: 'Landed',
+        actor_id: 'usr_fisher_01',
         actor_name: `${fisher} (Fisher)`,
         org_name: `${boat} Fleet`,
         weight_kg: initialWeight,
@@ -309,6 +382,10 @@ for (let i = 16; i <= 40; i++) {
         location: harbour,
         occurred_at: '2026-10-28T06:30:00Z',
         notes: 'Landing inspected',
+        grade_claimed: 'A',
+        confirmation_status: isSold ? 'CONFIRMED' : 'PENDING',
+        confirmed_by: isSold ? 'usr_trader_01' : null,
+        confirmed_at: isSold ? '2026-10-28T09:00:00Z' : null,
         prev_hash: 'GENESIS',
         hash: `hash_gen_${numStr}`,
       }
@@ -359,7 +436,14 @@ export let ALERTS = [
   }
 ];
 
+// Snapshot pristine initial seed data for demo reset capability
+const ORIGINAL_BATCHES = JSON.parse(JSON.stringify(BATCHES));
+const ORIGINAL_ALERTS = JSON.parse(JSON.stringify(ALERTS));
+
 export function resetSeedData() {
-  // Can be called by seed script or endpoint
+  BATCHES.length = 0;
+  BATCHES.push(...JSON.parse(JSON.stringify(ORIGINAL_BATCHES)));
+  ALERTS.length = 0;
+  ALERTS.push(...JSON.parse(JSON.stringify(ORIGINAL_ALERTS)));
   return true;
 }

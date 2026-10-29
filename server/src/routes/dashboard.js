@@ -4,6 +4,7 @@ import { filterBatchesByRole } from '../services/roleScoping.js';
 
 const router = express.Router();
 
+// TODO: BUYER_PAID account_type gate for certificate bulk export and dashboard analytics
 router.get('/summary', (req, res) => {
   const { role, userId, userName, userOrg, userEmail } = req.query;
   const user = {
