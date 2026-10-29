@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/navigation/Navbar';
 import Footer from '../components/navigation/Footer';
@@ -6,6 +6,7 @@ import PageHeader from '../components/common/PageHeader';
 import UserAvatar from '../components/common/UserAvatar';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { api } from '../services/api';
 import {
   Building,
   MapPin,
@@ -18,6 +19,8 @@ import {
   Settings,
   ShieldCheck,
   CheckCircle2,
+  Award,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -26,6 +29,40 @@ export default function Profile() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
+  const [trustData, setTrustData] = useState({
+    trustScore: user?.trust_score ?? 100,
+    confirmedCount: user?.confirmed_count ?? 0,
+    disputedCount: user?.disputed_count ?? 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadScore() {
+      if (!user) return;
+      try {
+        const targetId = user.id || user.email || user.role;
+        const res = await api.getUserTrustScore(targetId);
+        if (isMounted && res) {
+          setTrustData({
+            trustScore: res.trust_score ?? 100,
+            confirmedCount: res.confirmed_count ?? 0,
+            disputedCount: res.disputed_count ?? 0,
+            loading: false,
+          });
+        }
+      } catch {
+        if (isMounted) {
+          setTrustData((prev) => ({ ...prev, loading: false }));
+        }
+      }
+    }
+    loadScore();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
   const handleSignOutAndSwitch = () => {
     logout();
     toast.success(t('profile.confirmSignOut') || 'Signed out successfully. Select your next account on the login page.');
@@ -33,6 +70,7 @@ export default function Profile() {
   };
 
   const roleLabel = t(`roles.${(user?.role || 'admin').toLowerCase()}`, user?.roleLabel || user?.role || 'Fisher');
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <div className="min-h-screen flex flex-col bg-page">
@@ -74,6 +112,133 @@ export default function Profile() {
                 <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>{user?.location || 'Karnataka Coastal Harbour'}</span>
               </p>
+            </div>
+          </div>
+
+          {/* User Trust Score & Handover Reputation Card */}
+          <div className="bg-gradient-to-br from-slate-50 via-white to-ocean-50/40 rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
+                  isAdmin || trustData.trustScore >= 90
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : trustData.trustScore >= 70
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-rose-100 text-rose-700'
+                }`}>
+                  <Award className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-extrabold text-navy-900">
+                      {t('profile.trustScoreTitle', 'My Trust Score & Handover Reputation')}
+                    </h3>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      isAdmin || trustData.trustScore >= 90
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : trustData.trustScore >= 70
+                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                        : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}>
+                      {isAdmin
+                        ? 'Regulatory Authority'
+                        : trustData.trustScore >= 90
+                        ? 'Top Tier Custodian'
+                        : trustData.trustScore >= 70
+                        ? 'Good Standing'
+                        : 'Under Review'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-textSecondary mt-0.5">
+                    {isAdmin
+                      ? 'System Administrator with full compliance monitoring authority across the network'
+                      : t('profile.trustScoreSubtitle', 'Calculated across all physical handovers recorded on the CatchTrace ledger')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Large Score Display */}
+              <div className="flex items-center gap-3 self-start sm:self-auto bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-xs">
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-textSecondary block">Ledger Trust</span>
+                  <span className="text-[11px] font-medium text-textMuted">
+                    {isAdmin ? 'System Oversight' : `${trustData.confirmedCount + trustData.disputedCount} Total Handovers`}
+                  </span>
+                </div>
+                <div className={`text-2xl sm:text-3xl font-black ${
+                  isAdmin || trustData.trustScore >= 90
+                    ? 'text-emerald-600'
+                    : trustData.trustScore >= 70
+                    ? 'text-amber-600'
+                    : 'text-rose-600'
+                }`}>
+                  {trustData.loading ? '...' : isAdmin ? '100%' : `${trustData.trustScore}%`}
+                </div>
+              </div>
+            </div>
+
+            {/* Metric Pills */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="bg-white p-3.5 rounded-xl border border-emerald-100/90 shadow-2xs flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">
+                      {t('profile.confirmedHandovers', 'Confirmed Handovers')}
+                    </span>
+                    <span className="text-base font-black text-emerald-700">
+                      {isAdmin ? 'All Passed' : trustData.confirmedCount}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                  Accepted
+                </span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-rose-100/90 shadow-2xs flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">
+                      {t('profile.disputedHandovers', 'Disputed Handovers')}
+                    </span>
+                    <span className={`text-base font-black ${!isAdmin && trustData.disputedCount > 0 ? 'text-rose-600' : 'text-slate-700'}`}>
+                      {isAdmin ? '0' : trustData.disputedCount}
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+                  !isAdmin && trustData.disputedCount > 0
+                    ? 'bg-rose-50 text-rose-700 border-rose-100'
+                    : 'bg-slate-50 text-slate-600 border-slate-100'
+                }`}>
+                  {!isAdmin && trustData.disputedCount > 0 ? 'Flagged' : 'Clean'}
+                </span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-ocean-50 text-ocean-700 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider block">
+                      {t('profile.ledgerAudit', 'Ledger Integrity')}
+                    </span>
+                    <span className="text-xs font-black text-navy-900 block truncate">
+                      100% Cryptographic
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] text-ocean-700 font-bold bg-ocean-50 px-2 py-0.5 rounded-md border border-ocean-100">
+                  Verified
+                </span>
+              </div>
             </div>
           </div>
 
